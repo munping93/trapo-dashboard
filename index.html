@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Trapo Master Dashboard",
+  "schemaVersion": 1,
+  "description": "Interactive TRAPO master dashboard — all 4 platforms on 1-26 Mar vs 1-26 Apr data. Shopee, Lazada, TikTok, Website with Performance/Investment views and Cross-Platform comparison."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRAPO Master Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f1a;color:#e0e0e0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px 24px;border-bottom:1px solid #2a2a4a}
+.header h1{font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:4px}
+.header p{font-size:0.78rem;color:#888}
+.tabs{display:flex;gap:0;background:#1a1a2e;border-bottom:1px solid #2a2a4a;overflow-x:auto}
+.tab{padding:10px 20px;font-size:0.78rem;font-weight:600;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.tab:hover{color:#ccc;background:#1e1e35}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+.view-toggle{display:flex;gap:8px;padding:12px 24px;background:#12121f}
+.vbtn{padding:6px 16px;font-size:0.72rem;font-weight:600;border-radius:6px;border:1px solid #333;background:transparent;color:#aaa;cursor:pointer;transition:all .2s}
+.vbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.content{padding:20px 24px;max-width:1200px;margin:0 auto}
+.target-bar{background:#1a1a2e;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #2a2a4a}
+.target-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.target-head h3{font-size:0.82rem;font-weight:600;color:#e0e0e0}
+.target-head span{font-size:0.75rem;color:#888}
+.ptrack{background:#2a2a4a;border-radius:8px;height:24px;overflow:hidden}
+.pfill{height:100%;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;min-width:40px}
+.plabels{display:flex;justify-content:space-between;margin-top:4px;font-size:0.68rem;color:#666}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#1a1a2e;border-radius:10px;padding:12px;border:1px solid #2a2a4a;border-top:3px solid #444}
+.kpi.good{border-top-color:#0f9d58}.kpi.bad{border-top-color:#db4437}.kpi.neutral{border-top-color:#f4a742}
+.kpi-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:4px;font-weight:600}
+.kpi-val{font-size:1.15rem;font-weight:700;color:#fff}
+.kpi-chg{font-size:0.72rem;font-weight:600;margin-top:2px}
+.pos{color:#0f9d58}.neg{color:#db4437}.neu{color:#f4a742}
+.kpi-sub{font-size:0.62rem;color:#666;margin-top:2px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.chart-box{background:#1a1a2e;border-radius:10px;padding:14px;border:1px solid #2a2a4a}
+.chart-box h3{font-size:0.78rem;font-weight:600;color:#ccc;margin-bottom:8px}
+canvas{max-height:240px}
+.section-title{font-size:0.9rem;font-weight:700;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid #2a2a4a;color:#e0e0e0}
+.note-box{background:#2a2a1a;border:1px solid #4a4a2a;border-radius:8px;padding:8px 12px;font-size:0.75rem;color:#c8b86a;margin-bottom:12px}
+.summary-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:0.78rem;background:#1a1a2e;border-radius:10px;overflow:hidden;border:1px solid #2a2a4a}
+.summary-table th{background:var(--accent);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:0.7rem;text-transform:uppercase}
+.summary-table td{padding:8px 10px;border-bottom:1px solid #2a2a4a;color:#ccc}
+.summary-table tr:last-child td{border-bottom:none}
+.summary-table .channel-cell{font-weight:700;background:#151528;color:#e0e0e0}
+.summary-table .totals-row{background:#151528;font-weight:600;border-top:2px solid var(--accent)}
+.insight-box{background:#1a1a2e;border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin-top:16px;border:1px solid #2a2a4a;border-left:4px solid var(--accent)}
+.insight-box h3{font-size:0.82rem;font-weight:600;margin-bottom:8px;color:var(--accent)}
+.insight-box ul{list-style:none;padding:0}
+.insight-box li{font-size:0.78rem;color:#bbb;padding:3px 0;line-height:1.5}
+.insight-box li::before{content:"→ ";color:var(--accent);font-weight:700}
+.cross-card{background:#1a1a2e;border-radius:10px;padding:16px;border:1px solid #2a2a4a;margin-bottom:12px}
+.cross-card h3{font-size:0.85rem;font-weight:600;color:#e0e0e0;margin-bottom:10px}
+@media(max-width:700px){.chart-row{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>TRAPO — Master Performance Dashboard</h1>
+  <p>MoM Comparison · 1–26 Mar vs 1–26 Apr | All Platforms</p>
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="view-toggle" id="viewToggle"></div>
+<div class="content" id="main"></div>
+
+<script>
+const PLATFORMS = ['shopee','lazada','tiktok','website'];
+const PLABELS = {shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',website:'Website'};
+const ACCENTS = {shopee:'#ee4d2d',lazada:'#0f1689',tiktok:'#69c9d0',website:'#1565c0',cross:'#9c27b0'};
+const DATA = {
+  shopee: {
+    period: '1–26 Mar vs 1–26 Apr',
+    perf: {
+      target:{current:54458,goal:56400,pct:96.6,remaining:'$1,942 in 4 days (~$486/day needed)'},
+      kpis:[
+        {label:'Orders',value:'667',change:2.62,prev:'650',status:'good'},
+        {label:'GMV',value:'$54,458',change:8.94,prev:'$49,988',status:'good'},
+        {label:'Avg Daily GMV',value:'$2,095',change:8.54,prev:'$1,923',status:'good'},
+        {label:'AOV',value:'$82',change:7.11,prev:'$77',status:'good'},
+        {label:'Visitors',value:'28,760',change:-24.99,prev:'38,343',status:'bad'},
+        {label:'Cancelled Sales',value:'$2,814',change:13.48,prev:'$2,480',status:'bad',inverted:true},
+        {label:'Conversion Rate',value:'2.42%',change:1.68,prev:'2.38%',status:'good'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[650,49.99],apr:[667,54.46]},
+      visitors:{mar:38343,apr:28760},cr:{mar:2.38,apr:2.42},
+      momLabels:['Orders','GMV','ADGMV','AOV','Visitors','Cancelled $','CR%'],
+      momValues:[2.62,8.94,8.54,7.11,-24.99,13.48,1.68],
+      momInverted:['Cancelled $'],
+      insights:[
+        'Orders and GMV both up — orders +2.6% (650 → 667) and GMV +8.9% ($49,988 → $54,458). Strong recovery.',
+        'AOV increased by 7.1% ($77 → $82). Higher basket size is the growth driver.',
+        'Visitors still down 25% (38,343 → 28,760), offset by better conversion and higher AOV.',
+        'April target almost hit! 96.6% ($54,458 of $56,400) — very achievable.'
+      ]
+    },
+    inv: {
+      channels:['Shopee Ads','Spons. Affiliate'],
+      ch1:{label:'Shopee Ads',kpis:[
+        {label:'Revenue',value:'$33,000',change:24.5,prev:'$26,500',status:'good'},
+        {label:'Amount Spent',value:'$7,600',change:38.2,prev:'$5,500',status:'bad',inverted:true},
+        {label:'ROAS',value:'4.34x',change:-9.4,prev:'4.79x',status:'bad'},
+        {label:'CTR',value:'4.33%',change:-22.1,prev:'5.56%',status:'bad'}
+      ]},
+      ch2:{label:'Spons. Affiliate',kpis:[
+        {label:'Revenue',value:'$17,121',change:92.7,prev:'$8,884',status:'good'},
+        {label:'Amount Spent',value:'$475.95',change:29.9,prev:'$366.40',status:'bad',inverted:true},
+        {label:'ROAS',value:'35.97x',change:48.3,prev:'24.25x',status:'good'},
+        {label:'Orders',value:'304',change:75.7,prev:'173',status:'good'}
+      ]},
+      revData:{mar:[26500,8884],apr:[33000,17121]},
+      spendData:{mar:[5500,366.4],apr:[7600,475.95]},
+      roasData:{mar:[4.79,24.25],apr:[4.34,35.97]},
+      table:[
+        {ch:'Shopee Ads',rows:[['Revenue','$26,500','$33,000','+24.5%','pos'],['Spend','$5,500','$7,600','+38.2%','neg'],['ROAS','4.79x','4.34x','-9.4%','neg'],['CTR','5.56%','4.33%','-22.1%','neg']]},
+        {ch:'Spons. Affiliate',rows:[['Revenue','$8,884','$17,121','+92.7%','pos'],['Spend','$366.40','$475.95','+29.9%','neg'],['ROAS','24.25x','35.97x','+48.3%','pos'],['Orders','173','304','+75.7%','pos']]}
+      ],
+      totals:['$35,384 rev / $5,866 spend','$50,121 rev / $8,076 spend','ROAS: 6.03x → 6.21x','pos'],
+      insights:[
+        'Sponsored Affiliate revenue nearly doubled (+92.7%) with only 29.9% more spend. ROAS jumped to 35.97x.',
+        'Shopee Ads revenue grew 24.5% but spend grew faster (+38.2%), pulling ROAS down to 4.34x.',
+        'Combined revenue up 41.7% ($35,384 → $50,121). Overall ROAS improved from 6.03x to 6.21x.'
+      ]
+    }
+  },
+  lazada: {
+    period: '1–26 Mar vs 1–26 Apr',
+    perf: {
+      target:{current:14319,goal:20700,pct:69.17,remaining:'$6,381 in 4 days (~$1,595/day needed)'},
+      kpis:[
+        {label:'Orders',value:'157',change:-22.3,prev:'202',status:'bad'},
+        {label:'GMV',value:'$14,319',change:-29.5,prev:'$20,311',status:'bad'},
+        {label:'Avg Daily GMV',value:'$551',change:-29.5,prev:'$781',status:'bad'},
+        {label:'AOV',value:'$91',change:-9.3,prev:'$101',status:'bad'},
+        {label:'Visitors',value:'6,604',change:-32.2,prev:'9,740',status:'bad'},
+        {label:'Cancelled Sales',value:'$2,586',change:-13.3,prev:'$2,982',status:'good',inverted:true},
+        {label:'Conversion Rate',value:'2.32%',change:17.2,prev:'1.98%',status:'good'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[202,20.31],apr:[157,14.32]},
+      visitors:{mar:9740,apr:6604},cr:{mar:1.98,apr:2.32},
+      momLabels:['Orders','GMV','ADGMV','AOV','Visitors','Cancelled $','CR%'],
+      momValues:[-22.3,-29.5,-29.5,-9.3,-32.2,-13.3,17.2],
+      momInverted:['Cancelled $'],
+      insights:[
+        'Orders -22.3% and GMV -29.5% ($20,311 → $14,319). Lazada continues to struggle.',
+        'AOV down 9.3% ($101 → $91). No higher basket to compensate for fewer orders.',
+        'CR shows a strong +17.2% (1.98% → 2.32%). Remaining visitors converting better.',
+        'Cancelled Sales decreased 13.3% — a positive signal. April target at risk at 69.17%.'
+      ]
+    },
+    inv: {
+      channels:['Sponsored Max','Spons. Affiliate'],
+      note:'Sponsored Discovery had no activity in both periods.',
+      ch1:{label:'Sponsored Max',kpis:[
+        {label:'Revenue',value:'$12,540',change:-31.9,prev:'$18,410',status:'bad'},
+        {label:'Amount Spent',value:'$1,700',change:-58.3,prev:'$4,080',status:'good',inverted:true},
+        {label:'ROAS',value:'7.35x',change:63.0,prev:'4.51x',status:'good'},
+        {label:'CTR',value:'2.45%',change:28.3,prev:'1.91%',status:'good'}
+      ]},
+      ch2:{label:'Spons. Affiliate',kpis:[
+        {label:'Revenue',value:'$3,069',change:6.7,prev:'$2,876',status:'good'},
+        {label:'Amount Spent',value:'$314.80',change:4.7,prev:'$300.80',status:'bad',inverted:true},
+        {label:'ROAS',value:'9.75x',change:2.0,prev:'9.56x',status:'good'},
+        {label:'Orders',value:'23',change:-36.1,prev:'36',status:'bad'}
+      ]},
+      revData:{mar:[18410,2876],apr:[12540,3069]},
+      spendData:{mar:[4080,300.8],apr:[1700,314.8]},
+      roasData:{mar:[4.51,9.56],apr:[7.35,9.75]},
+      table:[
+        {ch:'Sponsored Max',rows:[['Revenue','$18,410','$12,540','-31.9%','neg'],['Spend','$4,080','$1,700','-58.3%','pos'],['ROAS','4.51x','7.35x','+63.0%','pos'],['CTR','1.91%','2.45%','+28.3%','pos']]},
+        {ch:'Spons. Affiliate',rows:[['Revenue','$2,876','$3,069','+6.7%','pos'],['Spend','$300.80','$314.80','+4.7%','neg'],['ROAS','9.56x','9.75x','+2.0%','pos'],['Orders','36','23','-36.1%','neg']]}
+      ],
+      totals:['$21,286 rev / $4,381 spend','$15,609 rev / $2,015 spend','ROAS: 4.86x → 7.75x','pos'],
+      insights:[
+        'Sponsored Max efficiency dramatically improved — ROAS jumped from 4.51x to 7.35x (+63%). Spend cut 58.3%.',
+        'Sponsored Affiliate holds steady — revenue +6.7%, ROAS at 9.75x. Orders dropped 36.1%.',
+        'Combined spend cut 54% while ROAS improved from 4.86x to 7.75x. Room to scale back up.'
+      ]
+    }
+  },
+  tiktok: {
+    period: '1–26 Mar vs 1–26 Apr',
+    perf: {
+      target:{current:23440,goal:50000,pct:46,remaining:'$26,560 in 4 days (~$6,640/day needed)'},
+      kpis:[
+        {label:'Orders',value:'462',change:-32,prev:'687',status:'bad'},
+        {label:'GMV',value:'$23,440',change:-39,prev:'$38,559',status:'bad'},
+        {label:'Avg Daily GMV',value:'$1,065',change:-39,prev:'$1,752',status:'bad'},
+        {label:'AOV',value:'$50',change:-9,prev:'$56',status:'bad'},
+        {label:'Visitors',value:'9,061',change:-24,prev:'12,077',status:'bad'},
+        {label:'Cancelled Sales',value:'$2,599',change:30,prev:'$1,996',status:'bad',inverted:true},
+        {label:'Conversion Rate',value:'5.10%',change:-10.4,prev:'5.69%',status:'bad'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[687,38.56],apr:[462,23.44]},
+      visitors:{mar:12077,apr:9061},cr:{mar:5.69,apr:5.10},
+      momLabels:['Orders','GMV','ADGMV','AOV','Visitors','Cancelled $','CR%'],
+      momValues:[-32,-39,-39,-9,-24,30,-10.4],
+      momInverted:['Cancelled $'],
+      insights:[
+        'Orders -32% (687 → 462) and GMV -39% ($38,559 → $23,440). Significant decline.',
+        'AOV also fell 9% ($56 → $50). Full-month confirms broad-based decline.',
+        'Cancelled Sales +30% ($1,996 → $2,599). Moderated from early-month spike but still concerning.',
+        'Target critically at risk: 46% ($23,440 of $50,000). Unreachable at current pace.'
+      ]
+    },
+    inv: {
+      channels:['Product GMV','Live GMV'],
+      ch1:{label:'Product GMV',kpis:[
+        {label:'Revenue',value:'$8,032',change:-66,prev:'$16,111',status:'bad'},
+        {label:'Amount Spent',value:'$1,086',change:-72,prev:'$2,316',status:'good',inverted:true},
+        {label:'ROAS',value:'7.40x',change:6.3,prev:'6.96x',status:'good'},
+        {label:'Orders',value:'248',change:-42.9,prev:'434',status:'bad'}
+      ]},
+      ch2:{label:'Live GMV',kpis:[
+        {label:'Revenue',value:'$13,792',change:-45,prev:'$22,003',status:'bad'},
+        {label:'Amount Spent',value:'$2,541',change:-20,prev:'$3,135',status:'good',inverted:true},
+        {label:'ROAS',value:'5.43x',change:-22.6,prev:'7.02x',status:'bad'},
+        {label:'Views',value:'72,091',change:-22,prev:'92,425',status:'bad'}
+      ]},
+      revData:{mar:[16111,22003],apr:[8032,13792]},
+      spendData:{mar:[2316,3135],apr:[1086,2541]},
+      roasData:{mar:[6.96,7.02],apr:[7.40,5.43]},
+      table:[
+        {ch:'Product GMV',rows:[['Revenue','$16,111','$8,032','-66%','neg'],['Spend','$2,316','$1,086','-72%','pos'],['ROAS','6.96x','7.40x','+6.3%','pos'],['Orders','434','248','-42.9%','neg']]},
+        {ch:'Live GMV',rows:[['Revenue','$22,003','$13,792','-45%','neg'],['Spend','$3,135','$2,541','-20%','pos'],['ROAS','7.02x','5.43x','-22.6%','neg'],['Views','92,425','72,091','-22%','neg']]}
+      ],
+      totals:['$38,114 rev / $5,451 spend','$21,824 rev / $3,627 spend','ROAS: 6.99x → 6.02x','neg'],
+      insights:[
+        'Product GMV revenue -66% but spend -72%, ROAS improved to 7.40x. Efficiency proven.',
+        'Live GMV struggling — revenue -45%, spend only -20%, ROAS crashed from 7.02x to 5.43x.',
+        'Combined ROAS fell from 6.99x to 6.02x. Scale Product GMV back up where efficiency is proven.'
+      ]
+    }
+  },
+  website: {
+    period: '1–26 Mar vs 1–26 Apr',
+    perf: {
+      target:{current:15379,goal:28000,pct:55,remaining:'$12,621 in 4 days (~$3,155/day needed)'},
+      kpis:[
+        {label:'Orders',value:'111',change:-22,prev:'143',status:'bad'},
+        {label:'GMV',value:'$15,379',change:-38,prev:'$24,889',status:'bad'},
+        {label:'Avg Daily GMV',value:'$592',change:-38,prev:'$957',status:'bad'},
+        {label:'AOV',value:'$86.84',change:-23.5,prev:'$113.52',status:'bad'},
+        {label:'Sessions',value:'8,321',change:-21.2,prev:'10,006',status:'bad'},
+        {label:'Refunded Sales',value:'~$13',change:17.3,prev:'~$11',status:'bad',inverted:true},
+        {label:'Conversion Rate',value:'0.73%',change:-45.9,prev:'1.35%',status:'bad'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[143,24.89],apr:[111,15.38]},
+      visitors:{mar:10006,apr:8321},cr:{mar:1.35,apr:0.73},
+      visitorLabel:'Sessions',
+      momLabels:['Orders','GMV','ADGMV','AOV','Sessions','Refunded $','CR%'],
+      momValues:[-22,-38,-38,-23.5,-21.2,17.3,-45.9],
+      momInverted:['Refunded $'],
+      insights:[
+        'GMV dropped 38% ($24,889 → $15,379). Still the steepest relative decline among platforms.',
+        'AOV dropped 23.5% ($113.52 → $86.84). Customers ordering less AND spending less per order.',
+        'Sessions down 21.2% (10,006 → 8,321) but real problem is CR crashing from 1.35% to 0.73% (-45.9%).',
+        'Target at 55% ($15,379 of $28,000). Needs ~$3,155/day for remaining 4 days vs $592/day pace — unreachable.'
+      ]
+    },
+    inv: {
+      channels:['Meta Ads','Google Ads'],
+      ch1:{label:'Meta Ads',kpis:[
+        {label:'Revenue',value:'$9,566',change:-52.63,prev:'$20,193',status:'bad'},
+        {label:'Amount Spent',value:'$1,039',change:-52.53,prev:'$2,189',status:'good',inverted:true},
+        {label:'ROAS',value:'9.21x',change:-0.22,prev:'9.23x',status:'neutral'}
+      ]},
+      ch2:{label:'Google Ads',kpis:[
+        {label:'Revenue',value:'$20,973',change:-5.13,prev:'$22,107',status:'bad'},
+        {label:'Amount Spent',value:'$899',change:3.33,prev:'$870',status:'bad',inverted:true},
+        {label:'ROAS',value:'23.33x',change:-8.15,prev:'25.40x',status:'bad'}
+      ]},
+      revData:{mar:[20193,22107],apr:[9566,20973]},
+      spendData:{mar:[2189,870],apr:[1039,899]},
+      roasData:{mar:[9.23,25.40],apr:[9.21,23.33]},
+      table:[
+        {ch:'Meta Ads',rows:[['Revenue','$20,193','$9,566','-52.63%','neg'],['Spend','$2,189','$1,039','-52.53%','pos'],['ROAS','9.23x','9.21x','-0.22%','neg']]},
+        {ch:'Google Ads',rows:[['Revenue','$22,107','$20,973','-5.13%','neg'],['Spend','$870','$899','+3.33%','neg'],['ROAS','25.40x','23.33x','-8.15%','neg']]}
+      ],
+      totals:['$24,889 rev / $3,059 spend','$15,379 rev / $1,938 spend','ROAS: 8.14x → 7.94x','neg'],
+      insights:[
+        'Meta Ads revenue dropped 52.63% ($20,193 → $9,566), matching the 52.53% spend cut ($2,189 → $1,039). ROAS held almost perfectly flat at 9.21x (vs 9.23x, only -0.22%). Very proportional pullback.',
+        'Google Ads is the more stable channel — revenue only -5.13% ($22,107 → $20,973) with spend slightly up (+3.33%). However, ROAS declined 8.15% (25.40x → 23.33x).',
+        'Combined spend down 36.6% ($3,059 → $1,938), revenue down 38.2%. Overall ROAS essentially flat at 7.94x (vs 8.14x).',
+        'Google Ads delivers 23.33x ROAS vs Meta at 9.21x — consider shifting more budget to Google where efficiency is higher.'
+      ]
+    }
+  }
+};
+
+let charts = [];
+let curPlatform = 'shopee';
+let curView = 'perf';
+
+function destroyCharts(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[]}
+function setAccent(p){document.body.style.setProperty('--accent',ACCENTS[p]||ACCENTS.cross)}
+
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#2a2a4a';
+
+function chgClass(change, inverted){
+  if(inverted) return change >= 0 ? 'neg' : 'pos';
+  return change >= 0 ? 'pos' : 'neg';
+}
+
+function buildTabs(){
+  const t=document.getElementById('tabs');
+  t.innerHTML='';
+  PLATFORMS.forEach(p=>{
+    const b=document.createElement('button');
+    b.className='tab'+(p===curPlatform?' active':'');
+    b.textContent=PLABELS[p];
+    b.style.setProperty('--accent',ACCENTS[p]);
+    b.onclick=()=>{curPlatform=p;curView='perf';render()};
+    t.appendChild(b);
+  });
+  const cb=document.createElement('button');
+  cb.className='tab'+(curPlatform==='cross'?' active':'');
+  cb.textContent='Cross-Platform';
+  cb.onclick=()=>{curPlatform='cross';curView='perf';render()};
+  t.appendChild(cb);
+}
+
+function buildViewToggle(){
+  const vt=document.getElementById('viewToggle');
+  if(curPlatform==='cross'){vt.innerHTML='';return}
+  const d=DATA[curPlatform];
+  if(!d){vt.innerHTML='';return}
+  let html='<button class="vbtn'+(curView==='perf'?' active':'')+'" onclick="curView=\'perf\';render()">Performance</button>';
+  if(d.inv) html+='<button class="vbtn'+(curView==='inv'?' active':'')+'" onclick="curView=\'inv\';render()">Investment</button>';
+  vt.innerHTML=html;
+}
+
+function render(){
+  destroyCharts();
+  setAccent(curPlatform);
+  buildTabs();
+  buildViewToggle();
+  const main=document.getElementById('main');
+  if(curPlatform==='cross'){renderCross(main);return}
+  const d=DATA[curPlatform];
+  if(!d){main.innerHTML='<p>No data</p>';return}
+  if(curView==='perf') renderPerf(main,d,curPlatform);
+  else if(curView==='inv'&&d.inv) renderInv(main,d,curPlatform);
+}
+
+function renderKpiCard(k){
+  const arrow = k.change >= 0 ? '▲' : '▼';
+  const cls = chgClass(k.change, k.inverted);
+  return `<div class="kpi ${k.status}"><div class="kpi-label">${k.label}</div><div class="kpi-val">${k.value}</div><div class="kpi-chg ${cls}">${arrow} ${Math.abs(k.change)}%</div><div class="kpi-sub">vs ${k.prev} (Mar)</div></div>`;
+}
+
+function renderPerf(el,d,p){
+  const pf=d.perf;const accent=ACCENTS[p];
+  const tPct=pf.target.pct;
+  const tColor=tPct>=90?'#0f9d58':tPct>=60?'#f4a742':'#db4437';
+  const vLabel=pf.visitorLabel||'Visitors';
+  let html=`<div class="target-bar"><div class="target-head"><h3>April GMV Target Progress</h3><span>$${pf.target.current.toLocaleString()} of $${pf.target.goal.toLocaleString()}</span></div><div class="ptrack"><div class="pfill" style="width:${Math.min(tPct,100)}%;background:linear-gradient(90deg,${accent},${tColor})">${tPct}%</div></div><div class="plabels"><span>$0</span><span>Remaining: ${pf.target.remaining}</span><span>$${pf.target.goal.toLocaleString()}</span></div></div>`;
+  html+='<div class="kpi-grid">';
+  pf.kpis.forEach(k=>{ html += renderKpiCard(k); });
+  html+='</div>';
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Orders & GMV Comparison</h3><canvas id="c1"></canvas></div><div class="chart-box"><h3>${vLabel} & Conversion Rate</h3><canvas id="c2"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Month-over-Month Change (%)</h3><canvas id="c3"></canvas></div><div class="chart-box"><h3>GMV vs April Target</h3><canvas id="c4"></canvas></div></div>`;
+  html+=`<div class="insight-box"><h3>Key Findings</h3><ul>${pf.insights.map(i=>'<li>'+i+'</li>').join('')}</ul></div>`;
+  el.innerHTML=html;
+  const marC=accent,aprC='#ff9800';
+  const periodLabel=d.period.split(' vs ');
+  charts.push(new Chart(document.getElementById('c1'),{type:'bar',data:{labels:pf.barData.labels,datasets:[{label:periodLabel[0],data:pf.barData.mar,backgroundColor:marC,borderRadius:6},{label:periodLabel[1],data:pf.barData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+  charts.push(new Chart(document.getElementById('c2'),{type:'bar',data:{labels:[periodLabel[0],periodLabel[1]],datasets:[{label:vLabel,data:[pf.visitors.mar,pf.visitors.apr],backgroundColor:[marC,aprC],borderRadius:6,yAxisID:'y'},{label:'CR%',data:[pf.cr.mar,pf.cr.apr],type:'line',borderColor:'#0f9d58',backgroundColor:'#0f9d58',pointRadius:6,pointBackgroundColor:'#0f9d58',borderWidth:3,yAxisID:'y1',tension:0.3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},title:{display:true,text:vLabel,font:{size:10},color:'#888'},ticks:{color:'#888'}},y1:{beginAtZero:true,position:'right',grid:{display:false},title:{display:true,text:'CR%',font:{size:10},color:'#888'},ticks:{callback:v=>v+'%',color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+  const momColors=pf.momLabels.map((l,i)=>{const v=pf.momValues[i];const inv=pf.momInverted.includes(l);return(inv?v<0:v>0)?'#0f9d58':'#db4437'});
+  charts.push(new Chart(document.getElementById('c3'),{type:'bar',data:{labels:pf.momLabels,datasets:[{label:'MoM Change %',data:pf.momValues,backgroundColor:momColors,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>(ctx.parsed.x>0?'+':'')+ctx.parsed.x+'%'}}},scales:{x:{grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'%',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+  charts.push(new Chart(document.getElementById('c4'),{type:'bar',data:{labels:['April GMV'],datasets:[{label:'Achieved',data:[pf.target.current],backgroundColor:accent,borderRadius:6},{label:'Remaining',data:[pf.target.goal-pf.target.current],backgroundColor:'#2a2a4a',borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.x.toLocaleString()}}},scales:{x:{stacked:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},y:{stacked:true,grid:{display:false},ticks:{color:'#aaa'}}}}}));
+}
+
+function renderInv(el,d,p){
+  const inv=d.inv;const accent=ACCENTS[p];
+  const periodLabel=d.period.split(' vs ');
+  let html='';
+  if(inv.note) html+=`<div class="note-box"><strong>Note:</strong> ${inv.note}</div>`;
+  html+=`<div class="section-title">${inv.ch1.label}</div><div class="kpi-grid">`;
+  inv.ch1.kpis.forEach(k=>{ html += renderKpiCard(k); });
+  html+='</div>';
+  html+=`<div class="section-title">${inv.ch2.label}</div><div class="kpi-grid">`;
+  inv.ch2.kpis.forEach(k=>{ html += renderKpiCard(k); });
+  html+='</div>';
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Revenue by Channel</h3><canvas id="c1"></canvas></div><div class="chart-box"><h3>Spend by Channel</h3><canvas id="c2"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>ROAS Comparison</h3><canvas id="c3"></canvas></div><div class="chart-box"><h3>Spend Efficiency</h3><canvas id="c4"></canvas></div></div>`;
+  html+=`<table class="summary-table"><thead><tr><th>Channel</th><th>Metric</th><th>${periodLabel[0]}</th><th>${periodLabel[1]}</th><th>Change</th></tr></thead><tbody>`;
+  inv.table.forEach(ch=>{
+    ch.rows.forEach((r,i)=>{
+      html+='<tr>';
+      if(i===0) html+=`<td rowspan="${ch.rows.length}" class="channel-cell">${ch.ch}</td>`;
+      html+=`<td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="${r[4]}">${r[3]}</td></tr>`;
+    });
+  });
+  html+=`<tr class="totals-row"><td colspan="2">Combined Totals</td><td>${inv.totals[0]}</td><td>${inv.totals[1]}</td><td class="${inv.totals[3]}">${inv.totals[2]}</td></tr></tbody></table>`;
+  html+=`<div class="insight-box"><h3>Key Insights</h3><ul>${inv.insights.map(i=>'<li>'+i+'</li>').join('')}</ul></div>`;
+  el.innerHTML=html;
+  const marC=accent,aprC='#ff9800';
+  charts.push(new Chart(document.getElementById('c1'),{type:'bar',data:{labels:inv.channels,datasets:[{label:periodLabel[0],data:inv.revData.mar,backgroundColor:marC,borderRadius:6},{label:periodLabel[1],data:inv.revData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+  charts.push(new Chart(document.getElementById('c2'),{type:'bar',data:{labels:inv.channels,datasets:[{label:periodLabel[0],data:inv.spendData.mar,backgroundColor:marC,borderRadius:6},{label:periodLabel[1],data:inv.spendData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+v.toLocaleString(),color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+  charts.push(new Chart(document.getElementById('c3'),{type:'bar',data:{labels:inv.channels,datasets:[{label:periodLabel[0],data:inv.roasData.mar,backgroundColor:marC,borderRadius:6},{label:periodLabel[1],data:inv.roasData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)+'x'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'x',color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+  const effLabels=[inv.ch1.label+' (Mar)',inv.ch1.label+' (Apr)',inv.ch2.label+' (Mar)',inv.ch2.label+' (Apr)'];
+  const effData=[inv.roasData.mar[0],inv.roasData.apr[0],inv.roasData.mar[1],inv.roasData.apr[1]];
+  charts.push(new Chart(document.getElementById('c4'),{type:'bar',data:{labels:effLabels,datasets:[{label:'Revenue per $1',data:effData,backgroundColor:[marC,aprC,marC,aprC],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.x.toFixed(2)+' per $1 spent'}}},scales:{x:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+v,color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa',font:{size:10}}}}}}));
+}
+
+function renderCross(el){
+  setAccent('cross');
+  const gmvData=[
+    {platform:'Shopee',gmv:54458,target:56400,pct:96.6,color:ACCENTS.shopee},
+    {platform:'Lazada',gmv:14319,target:20700,pct:69.17,color:ACCENTS.lazada},
+    {platform:'TikTok',gmv:23440,target:50000,pct:46,color:ACCENTS.tiktok},
+    {platform:'Website',gmv:15379,target:28000,pct:55,color:ACCENTS.website}
+  ];
+  const totalGMV=gmvData.reduce((s,d)=>s+d.gmv,0);
+  const totalTarget=gmvData.reduce((s,d)=>s+d.target,0);
+  let html=`<div class="cross-card"><h3>Combined GMV: $${totalGMV.toLocaleString()} of $${totalTarget.toLocaleString()} Target (${(totalGMV/totalTarget*100).toFixed(1)}%)</h3><p style="font-size:0.72rem;color:#888;margin-top:4px">All platforms · 1–26 Mar vs 1–26 Apr</p></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>GMV by Platform</h3><canvas id="cx1"></canvas></div><div class="chart-box"><h3>Target Achievement (%)</h3><canvas id="cx2"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>GMV Share</h3><canvas id="cx3"></canvas></div><div class="chart-box"><h3>GMV vs Target Gap</h3><canvas id="cx4"></canvas></div></div>`;
+  html+=`<table class="summary-table"><thead><tr><th>Metric</th><th style="color:${ACCENTS.shopee}">Shopee</th><th style="color:${ACCENTS.lazada}">Lazada</th><th style="color:${ACCENTS.tiktok}">TikTok</th><th style="color:${ACCENTS.website}">Website</th></tr></thead><tbody>`;
+  const metrics=[
+    ['GMV','$54,458','$14,319','$23,440','$15,379'],
+    ['GMV MoM','+8.94%','-29.5%','-39%','-38%'],
+    ['Orders','667','157','462','111'],
+    ['AOV','$82','$91','$50','$86.84'],
+    ['Traffic','28,760','6,604','9,061','8,321'],
+    ['CR%','2.42%','2.32%','5.10%','0.73%'],
+    ['Target %','96.6%','69.17%','46%','55%']
+  ];
+  metrics.forEach(r=>{
+    html+=`<tr><td style="font-weight:600;color:#e0e0e0">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  html+=`<div class="section-title">Investment Comparison</div>`;
+  html+=`<table class="summary-table"><thead><tr><th>Metric</th><th style="color:${ACCENTS.shopee}">Shopee</th><th style="color:${ACCENTS.lazada}">Lazada</th><th style="color:${ACCENTS.tiktok}">TikTok</th><th style="color:${ACCENTS.website}">Website</th></tr></thead><tbody>`;
+  const invMetrics=[
+    ['Total Revenue','$50,121','$15,609','$21,824','$15,379'],
+    ['Total Spend','$8,076','$2,015','$3,627','$1,938'],
+    ['ROAS','6.21x','7.75x','6.02x','7.94x'],
+    ['ROAS Trend','6.03x → 6.21x','4.86x → 7.75x','6.99x → 6.02x','8.14x → 7.94x'],
+    ['Best Channel','Affiliate (35.97x)','Affiliate (9.75x)','Product GMV (7.40x)','Google Ads (23.33x)']
+  ];
+  invMetrics.forEach(r=>{
+    html+=`<tr><td style="font-weight:600;color:#e0e0e0">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  html+=`<div class="insight-box"><h3>Cross-Platform Insights</h3><ul>
+    <li><strong>Shopee is the clear winner</strong> — only platform with positive GMV growth (+8.9%) and near-target (96.6%). Sponsored Affiliate ROAS at 35.97x is exceptional.</li>
+    <li><strong>Website ads are highly efficient</strong> — Google Ads delivers 23.33x ROAS (second highest after Shopee Affiliate). Overall ROAS held steady at 7.94x despite 37% spend cut. Meta Ads cut spend and revenue by ~53% each, keeping ROAS flat at 9.21x.</li>
+    <li><strong>Lazada investment efficiency improved dramatically</strong> — ROAS jumped from 4.86x to 7.75x. Revenue declined but room to scale back up.</li>
+    <li><strong>TikTok at 46% of target</strong> — Product GMV ROAS strong (7.40x) but Live GMV crashed to 5.43x. Cancelled sales up 30%.</li>
+    <li><strong>Combined GMV: $${totalGMV.toLocaleString()} of $${totalTarget.toLocaleString()}</strong> (${(totalGMV/totalTarget*100).toFixed(1)}%). Total ad spend across all platforms: $15,656. Combined ROAS: ~6.6x.</li>
+  </ul></div>`;
+  el.innerHTML=html;
+  const pColors=gmvData.map(d=>d.color);
+  const pLabels=gmvData.map(d=>d.platform);
+  charts.push(new Chart(document.getElementById('cx1'),{type:'bar',data:{labels:pLabels,datasets:[{label:'Apr GMV',data:gmvData.map(d=>d.gmv),backgroundColor:pColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+  charts.push(new Chart(document.getElementById('cx2'),{type:'bar',data:{labels:pLabels,datasets:[{label:'Target %',data:gmvData.map(d=>d.pct),backgroundColor:gmvData.map(d=>d.pct>=90?'#0f9d58':d.pct>=60?'#f4a742':'#db4437'),borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.x+'%'}}},scales:{x:{beginAtZero:true,max:100,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'%',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+  charts.push(new Chart(document.getElementById('cx3'),{type:'doughnut',data:{labels:pLabels,datasets:[{data:gmvData.map(d=>d.gmv),backgroundColor:pColors,borderColor:'#0f0f1a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>{const t=ctx.dataset.data.reduce((a,b)=>a+b,0);return ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+(ctx.parsed/t*100).toFixed(1)+'%)'}}}}}}));
+  charts.push(new Chart(document.getElementById('cx4'),{type:'bar',data:{labels:pLabels,datasets:[{label:'Achieved',data:gmvData.map(d=>d.gmv),backgroundColor:pColors,borderRadius:6},{label:'Gap to Target',data:gmvData.map(d=>Math.max(0,d.target-d.gmv)),backgroundColor:'#2a2a4a',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#aaa'}},y:{stacked:true,beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}}}}}));
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1051 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Trapo Master Dashboard",
+  "schemaVersion": 1,
+  "description": "Interactive TRAPO master dashboard — Shopee updated with real Apr 1-30 vs Mar 1-31 data. Performance/Investment/Top Sellers views. Other platforms pending data."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRAPO Master Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f1a;color:#e0e0e0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:18px 24px;border-bottom:1px solid #2a2a4a}
+.header h1{font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:4px}
+.header p{font-size:0.78rem;color:#888}
+.tabs{display:flex;gap:0;background:#1a1a2e;border-bottom:1px solid #2a2a4a;overflow-x:auto}
+.tab{padding:10px 20px;font-size:0.78rem;font-weight:600;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.tab:hover{color:#ccc;background:#1e1e35}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+.tab.pending{opacity:0.5}
+.view-toggle{display:flex;gap:8px;padding:12px 24px;background:#12121f}
+.vbtn{padding:6px 16px;font-size:0.72rem;font-weight:600;border-radius:6px;border:1px solid #333;background:transparent;color:#aaa;cursor:pointer;transition:all .2s}
+.vbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.content{padding:20px 24px;max-width:1200px;margin:0 auto}
+.target-bar{background:#1a1a2e;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid #2a2a4a}
+.target-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.target-head h3{font-size:0.82rem;font-weight:600;color:#e0e0e0}
+.target-head span{font-size:0.75rem;color:#888}
+.ptrack{background:#2a2a4a;border-radius:8px;height:24px;overflow:hidden}
+.pfill{height:100%;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;min-width:40px}
+.plabels{display:flex;justify-content:space-between;margin-top:4px;font-size:0.68rem;color:#666}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#1a1a2e;border-radius:10px;padding:12px;border:1px solid #2a2a4a;border-top:3px solid #444}
+.kpi.good{border-top-color:#0f9d58}.kpi.bad{border-top-color:#db4437}.kpi.neutral{border-top-color:#f4a742}
+.kpi-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:4px;font-weight:600}
+.kpi-val{font-size:1.15rem;font-weight:700;color:#fff}
+.kpi-chg{font-size:0.72rem;font-weight:600;margin-top:2px}
+.pos{color:#0f9d58}.neg{color:#db4437}.neu{color:#f4a742}
+.kpi-sub{font-size:0.62rem;color:#666;margin-top:2px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.chart-box{background:#1a1a2e;border-radius:10px;padding:14px;border:1px solid #2a2a4a}
+.chart-box h3{font-size:0.78rem;font-weight:600;color:#ccc;margin-bottom:8px}
+canvas{max-height:240px}
+.section-title{font-size:0.9rem;font-weight:700;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid #2a2a4a;color:#e0e0e0}
+.note-box{background:#2a2a1a;border:1px solid #4a4a2a;border-radius:8px;padding:8px 12px;font-size:0.75rem;color:#c8b86a;margin-bottom:12px}
+.summary-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:0.78rem;background:#1a1a2e;border-radius:10px;overflow:hidden;border:1px solid #2a2a4a}
+.summary-table th{background:var(--accent);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:0.7rem;text-transform:uppercase}
+.summary-table td{padding:8px 10px;border-bottom:1px solid #2a2a4a;color:#ccc}
+.summary-table tr:last-child td{border-bottom:none}
+.summary-table .channel-cell{font-weight:700;background:#151528;color:#e0e0e0}
+.summary-table .totals-row{background:#151528;font-weight:600;border-top:2px solid var(--accent)}
+.insight-box{background:#1a1a2e;border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin-top:16px;border:1px solid #2a2a4a;border-left:4px solid var(--accent)}
+.insight-box h3{font-size:0.82rem;font-weight:600;margin-bottom:8px;color:var(--accent)}
+.insight-box ul{list-style:none;padding:0}
+.insight-box li{font-size:0.78rem;color:#bbb;padding:3px 0;line-height:1.5}
+.insight-box li::before{content:"→ ";color:var(--accent);font-weight:700}
+.cross-card{background:#1a1a2e;border-radius:10px;padding:16px;border:1px solid #2a2a4a;margin-bottom:12px}
+.cross-card h3{font-size:0.85rem;font-weight:600;color:#e0e0e0;margin-bottom:10px}
+.rank-table{width:100%;border-collapse:collapse;font-size:0.78rem;background:#1a1a2e;border-radius:10px;overflow:hidden;border:1px solid #2a2a4a;margin-bottom:12px}
+.rank-table th{background:var(--accent);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:0.7rem;text-transform:uppercase}
+.rank-table td{padding:8px 10px;border-bottom:1px solid #2a2a4a;color:#ccc}
+.rank-table tr:last-child td{border-bottom:none}
+.rank-table tr:hover{background:#1e1e35}
+.rank-num{font-weight:800;color:var(--accent);font-size:0.9rem;width:30px;text-align:center}
+.rank-medal-1{color:#FFD700}.rank-medal-2{color:#C0C0C0}.rank-medal-3{color:#CD7F32}
+.sku-name{font-weight:600;color:#e0e0e0}
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.65rem;font-weight:600;background:#2a2a4a;color:#aaa}
+.pending-banner{background:#2a2a1a;border:1px solid #4a4a2a;border-radius:10px;padding:24px;text-align:center;margin:40px auto;max-width:500px}
+.pending-banner h3{color:#c8b86a;font-size:1rem;margin-bottom:8px}
+.pending-banner p{color:#888;font-size:0.82rem}
+/* Strategy view */
+.strat-target{background:#1a1a2e;border-radius:12px;padding:18px;border:1px solid #2a2a4a;margin-bottom:14px;position:relative;overflow:hidden}
+.strat-target::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent)}
+.strat-target .tgt-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.strat-target .tgt-main{font-size:1.8rem;font-weight:800;color:#fff}
+.strat-target .tgt-badge{padding:4px 12px;border-radius:8px;font-size:0.7rem;font-weight:700}
+.strat-target .tgt-rationale{font-size:0.78rem;color:#aaa;margin-top:10px;line-height:1.6}
+.strat-target .tgt-apr{font-size:0.72rem;color:#666;margin-top:6px}
+.inv-table{width:100%;border-collapse:collapse;font-size:0.78rem;background:#1a1a2e;border-radius:10px;overflow:hidden;border:1px solid #2a2a4a;margin-bottom:14px}
+.inv-table th{background:#ff980033;color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:0.7rem;text-transform:uppercase}
+.inv-table td{padding:8px 10px;border-bottom:1px solid #2a2a4a;color:#ccc}
+.inv-table tr:last-child td{border-bottom:none}
+.action-card{background:#1a1a2e;border-radius:10px;padding:14px 16px;border:1px solid #2a2a4a;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.action-card .priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.action-card .priority-dot.high{background:#db4437}.action-card .priority-dot.med{background:#f4a742}.action-card .priority-dot.opp{background:#0f9d58}
+.action-card .action-text{font-size:0.78rem;color:#bbb;line-height:1.6}
+.action-card .action-text strong{color:#e0e0e0}
+.risk-card{background:#1a1a2e;border-left:3px solid #db4437;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:0.75rem;color:#bbb;line-height:1.5;border:1px solid #2a2a4a;border-left:3px solid #db4437}
+.risk-card.med{border-left-color:#f4a742}
+.promo-item{background:#1a1a2e;border-radius:10px;padding:14px;border:1px solid #2a2a4a;margin-bottom:10px;position:relative;padding-left:20px}
+.promo-item.mega{border-left:3px solid #ff9800}
+.promo-item .promo-date{font-size:0.68rem;font-weight:700;color:#ff9800;margin-bottom:2px}
+.promo-item .promo-name{font-size:0.85rem;font-weight:700;color:#fff;margin-bottom:4px}
+.promo-item .promo-type{display:inline-block;padding:1px 8px;border-radius:8px;font-size:0.6rem;font-weight:600;background:#ff980022;color:#ff9800;border:1px solid #ff980044;margin-left:6px}
+.promo-item .promo-mech{font-size:0.75rem;color:#aaa;line-height:1.6;margin-bottom:6px}
+.promo-item .promo-platforms{display:flex;gap:6px;flex-wrap:wrap}
+.promo-item .promo-plat{padding:2px 8px;border-radius:8px;font-size:0.6rem;font-weight:600}
+.promo-tabs{display:flex;gap:8px;margin-bottom:12px}
+.promo-tab{padding:6px 14px;font-size:0.72rem;font-weight:600;border-radius:6px;border:1px solid #333;background:transparent;color:#aaa;cursor:pointer}
+.promo-tab.active{background:#ff9800;color:#fff;border-color:#ff9800}
+@media(max-width:700px){.chart-row{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.strat-target .tgt-row{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>TRAPO — Master Performance Dashboard</h1>
+  <p>Full Month · Apr 1–30 vs Mar 1–31 | All 4 Platforms Live</p>
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="view-toggle" id="viewToggle"></div>
+<div class="content" id="main"></div>
+
+<script>
+const PLATFORMS = ['shopee','lazada','tiktok','website','combined'];
+const PLABELS = {shopee:'Shopee',lazada:'Lazada',tiktok:'TikTok',website:'Website',combined:'Combined'};
+const ACCENTS = {shopee:'#ee4d2d',lazada:'#0f1689',tiktok:'#69c9d0',website:'#1565c0',combined:'#9c27b0'};
+const CAT_COLORS = {'Car Mat':'#ee4d2d','Wiper':'#4caf50','Accessories':'#ff9800','Car Care':'#2196f3','Dashcam':'#9c27b0','Others':'#607d8b'};
+const PENDING = [];
+
+const DATA = {
+  shopee: {
+    period: 'Mar 1–31 vs Apr 1–30',
+    periodLabels: ['Mar 1–31','Apr 1–30'],
+    perf: {
+      target:{current:61207,goal:56400,pct:108.5,remaining:'Target exceeded by $4,807!'},
+      kpis:[
+        {label:'Orders',value:'742',change:2.06,prev:'727',status:'good'},
+        {label:'GMV',value:'$61,207',change:9.55,prev:'$55,869',status:'good'},
+        {label:'Avg Daily GMV',value:'$2,040',change:13.20,prev:'$1,802',status:'good'},
+        {label:'AOV',value:'$82.49',change:7.34,prev:'$76.85',status:'good'},
+        {label:'Visitors',value:'17,341',change:-19.04,prev:'21,419',status:'bad'},
+        {label:'Cancelled Sales',value:'$1,852',change:-8.80,prev:'$2,030',status:'good',inverted:true},
+        {label:'Conversion Rate',value:'2.43%',change:3.40,prev:'2.35%',status:'good'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[727,55.87],apr:[742,61.21]},
+      visitors:{mar:21419,apr:17341},cr:{mar:2.35,apr:2.43},
+      momLabels:['Orders','GMV','ADGMV','AOV','Visitors','Cancelled $','CR%'],
+      momValues:[2.06,9.55,13.20,7.34,-19.04,-8.80,3.40],
+      momInverted:['Cancelled $'],
+      insights:[
+        'April target EXCEEDED! 108.5% — $61,207 of $56,400 target (+$4,807 over). Outstanding.',
+        'GMV grew 9.6% ($55,869 → $61,207) despite 19.0% fewer visitors (21,419 → 17,341).',
+        'Orders up 2.1% (727 → 742) and AOV up 7.3% ($76.85 → $82.49) — growth on both fronts.',
+        'Cancelled Sales dropped 8.8% ($2,030 → $1,852) — healthier order quality.',
+        'Conversion Rate improved 3.4% (2.35% → 2.43%). Better-quality traffic converting at higher rate.',
+        'Avg Daily GMV jumped 13.2% ($1,802 → $2,040). Full month confirms very strong momentum.'
+      ]
+    },
+    inv: {
+      channels:['Shopee Ads','Spons. Affiliate'],
+      ch1:{label:'Shopee Ads',kpis:[
+        {label:'Revenue',value:'$34,600',change:18.09,prev:'$29,300',status:'good'},
+        {label:'Amount Spent',value:'$7,800',change:27.87,prev:'$6,100',status:'bad',inverted:true},
+        {label:'ROAS',value:'4.44x',change:-7.31,prev:'4.79x',status:'bad'},
+        {label:'CTR',value:'4.32%',change:-19.70,prev:'5.38%',status:'bad'}
+      ]},
+      ch2:{label:'Spons. Affiliate',kpis:[
+        {label:'Revenue',value:'$20,712',change:99.53,prev:'$10,380',status:'good'},
+        {label:'Amount Spent',value:'$539.60',change:39.83,prev:'$385.90',status:'bad',inverted:true},
+        {label:'ROAS',value:'38.38x',change:42.68,prev:'26.90x',status:'good'},
+        {label:'Orders',value:'355',change:69.05,prev:'210',status:'good'}
+      ]},
+      revData:{mar:[29300,10380],apr:[34600,20712]},
+      spendData:{mar:[6100,385.9],apr:[7800,539.6]},
+      roasData:{mar:[4.79,26.90],apr:[4.44,38.38]},
+      table:[
+        {ch:'Shopee Ads',rows:[['Revenue','$29,300','$34,600','+18.1%','pos'],['Spend','$6,100','$7,800','+27.9%','neg'],['ROAS','4.79x','4.44x','-7.3%','neg'],['CTR','5.38%','4.32%','-19.7%','neg']]},
+        {ch:'Spons. Affiliate',rows:[['Revenue','$10,380','$20,712','+99.5%','pos'],['Spend','$385.90','$539.60','+39.8%','neg'],['ROAS','26.90x','38.38x','+42.7%','pos'],['Orders','210','355','+69.0%','pos']]}
+      ],
+      totals:['$39,680 rev / $6,486 spend','$55,312 rev / $8,340 spend','ROAS: 6.12x → 6.63x','pos'],
+      insights:[
+        'Sponsored Affiliate revenue DOUBLED (+99.5%, $10,380 → $20,712) with only 39.8% more spend. ROAS soared to 38.38x — exceptional efficiency.',
+        'Shopee Ads revenue grew 18.1% ($29,300 → $34,600) but spend grew faster (+27.9%), pulling ROAS from 4.79x to 4.44x. CTR also dropped 19.7%.',
+        'Combined revenue up 39.4% ($39,680 → $55,312). Overall ROAS improved from 6.12x to 6.63x.',
+        'Affiliate is the clear winner — 38.38x ROAS vs Shopee Ads at 4.44x. Consider shifting more budget toward Affiliate.'
+      ]
+    },
+    tops: {
+      skus:[
+        {rank:1,name:'Trapo Car Mat - Toyota Voxy/Noah Hybrid 7 Seater',category:'Car Mat',units:9,revenue:2523,prevUnits:5,prevRevenue:1402},
+        {rank:2,name:'Trapo Hydrophobic Wiper Blades [FRONT WIPER]',category:'Wiper',units:72,revenue:2040,prevUnits:65,prevRevenue:1842},
+        {rank:3,name:'Trapo Wiper Blade - Tesla Model Y/Juniper',category:'Wiper',units:26,revenue:1518,prevUnits:35,prevRevenue:2044},
+        {rank:4,name:'Trapo Car Mat - BYD Sealion 7',category:'Car Mat',units:7,revenue:1511,prevUnits:1,prevRevenue:216},
+        {rank:5,name:'Trapo Wiper Blade - Tesla Model 3',category:'Wiper',units:21,revenue:1231,prevUnits:14,prevRevenue:818}
+      ],
+      categories:[
+        {name:'Car Mat',units:187,revenue:36309,pct:59.3,prevUnits:183,prevRevenue:32423},
+        {name:'Wiper',units:381,revenue:19124,pct:31.2,prevUnits:339,prevRevenue:17098},
+        {name:'Car Care',units:271,revenue:2584,pct:4.2,prevUnits:294,prevRevenue:3856},
+        {name:'Accessories',units:152,revenue:2160,pct:3.5,prevUnits:135,prevRevenue:1954},
+        {name:'Dashcam',units:4,revenue:1028,pct:1.7,prevUnits:3,prevRevenue:539}
+      ],
+      modelGroups:[
+        {
+          label:'Car Mat',
+          models:[
+            {rank:1,name:'Toyota',units:45,revenue:9963},
+            {rank:2,name:'BYD',units:21,revenue:4222},
+            {rank:3,name:'Mercedes',units:21,revenue:3918},
+            {rank:4,name:'Honda',units:20,revenue:3585},
+            {rank:5,name:'BMW',units:10,revenue:1806},
+            {rank:6,name:'Hyundai',units:8,revenue:1704},
+            {rank:7,name:'Nissan',units:7,revenue:1559},
+            {rank:8,name:'Volkswagen',units:9,revenue:1526},
+            {rank:9,name:'Suzuki',units:6,revenue:1274},
+            {rank:10,name:'Tesla',units:5,revenue:914}
+          ]
+        },
+        {
+          label:'Wiper',
+          models:[
+            {rank:1,name:'Tesla',units:47,revenue:2749},
+            {rank:2,name:'Generic',units:100,revenue:2687},
+            {rank:3,name:'Honda',units:38,revenue:2358},
+            {rank:4,name:'Toyota',units:37,revenue:2186},
+            {rank:5,name:'BYD',units:33,revenue:1899},
+            {rank:6,name:'Mercedes',units:31,revenue:1770},
+            {rank:7,name:'BMW',units:22,revenue:1297},
+            {rank:8,name:'KIA',units:17,revenue:987},
+            {rank:9,name:'Mazda',units:10,revenue:572},
+            {rank:10,name:'Audi',units:10,revenue:524}
+          ]
+        }
+      ],
+      insights:[
+        '<strong>Car Mat dominates revenue</strong> at 59.3% share ($36,309) — Toyota is the top brand with $9,963 revenue from 45 units. BYD overtook Mercedes for #2.',
+        '<strong>Wiper leads in unit volume</strong> with 381 units sold (vs Car Mat 187). Generic wipers sell the most units (100) but Tesla leads in wiper revenue ($2,749).',
+        '<strong>BYD Sealion 7 is a breakout SKU</strong> — jumped from 1 unit in Mar to 7 in Apr (+600%). BYD also climbed to #2 for Car Mat brands.',
+        '<strong>Car Care revenue dropped 33%</strong> ($3,856 → $2,584) despite only losing 8% of units (294 → 271). Investigate pricing or product mix changes.',
+        '<strong>Dashcam grew 91%</strong> in revenue ($539 → $1,028) with just 1 extra unit. Higher-value models selling well.'
+      ]
+    },
+    strat: {
+      target:{goal:53600,aprActual:61207,aprPct:108.5,status:'Momentum',statusColor:'#0f9d58',adsBudget:6432},
+      rationale:'May target $53,600 (down from $56,400 in Apr). Apr exceeded at $61,207. Ads budget: $6,432 (12% of target). Shift mix toward Affiliate — 38.38x ROAS vs 4.44x for Ads.',
+      inv:[
+        {ch:'Shopee Ads',aprSpend:'$7,800',aprRoas:'4.44x',mayBudget:'~$5,400',action:'Reduce from Apr — reallocate to Affiliate. Optimize creatives for CTR recovery.',cls:'neg'},
+        {ch:'Affiliate',aprSpend:'$540',aprRoas:'38.38x',mayBudget:'~$1,032 ↑',action:'SCALE UP — 38.38x ROAS is exceptional. Nearly double spend within budget.',cls:'pos'}
+      ],
+      actions:[
+        {text:'<strong>Double down on Affiliate:</strong> 38.38x ROAS is 8.6x more efficient than Shopee Ads. Increase budget to $800–$1,000. Recruit Mother\'s Day content creators.',priority:'opp'},
+        {text:'<strong>Ride the BYD wave:</strong> BYD Sealion 7 grew +600% (1→7 units). Create dedicated BYD bundles for 5.5 sale.',priority:'opp'},
+        {text:'<strong>Fix visitor decline:</strong> Visitors dropped 19% despite GMV growing. Invest in Shopee Ads discovery campaigns during 5.5 to rebuild traffic.',priority:'med'},
+        {text:'<strong>Wiper rainy season push:</strong> 381 units in Apr — highest-volume category. Bundle with Hydroclear GWP during mid-month.',priority:'med'}
+      ],
+      risks:[
+        {text:'Visitor drop (19%) is masked by higher CR. If traffic decline continues, GMV growth will stall.',level:'med'}
+      ]
+    }
+  },
+  lazada: {
+    period: 'Mar 1–31 vs Apr 1–30',
+    periodLabels: ['Mar 1–31','Apr 1–30'],
+    perf: {
+      target:{current:16107,goal:20700,pct:77.8,remaining:'$4,593 short of target'},
+      kpis:[
+        {label:'Orders',value:'179',change:-31.94,prev:'263',status:'bad'},
+        {label:'GMV',value:'$16,107',change:-35.94,prev:'$25,146',status:'bad'},
+        {label:'Avg Daily GMV',value:'$537',change:-33.81,prev:'$811',status:'bad'},
+        {label:'AOV',value:'$89.99',change:-5.88,prev:'$95.61',status:'bad'},
+        {label:'Visitors',value:'5,810',change:-32.25,prev:'8,576',status:'bad'},
+        {label:'Cancelled Sales',value:'$2,943',change:-15.00,prev:'$3,462',status:'good',inverted:true},
+        {label:'Conversion Rate',value:'2.89%',change:2.12,prev:'2.83%',status:'good'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[263,25.15],apr:[179,16.11]},
+      visitors:{mar:8576,apr:5810},cr:{mar:2.83,apr:2.89},
+      momLabels:['Orders','GMV','ADGMV','AOV','Visitors','Cancelled $','CR%'],
+      momValues:[-31.94,-35.94,-33.81,-5.88,-32.25,-15.00,2.12],
+      momInverted:['Cancelled $'],
+      insights:[
+        'Orders -31.9% (263 → 179) and GMV -35.9% ($25,146 → $16,107). Lazada continues a significant decline.',
+        'AOV slipped 5.9% ($95.61 → $89.99). Lower basket size compounds the order drop.',
+        'Visitors -32.3% (8,576 → 5,810) but CR improved +2.1% (2.83% → 2.89%). Traffic quality slightly better.',
+        'Cancelled Sales down 15.0% ($3,462 → $2,943) — a positive signal on order quality.',
+        'Target at 77.8% ($16,107 of $20,700). Missed by $4,593.'
+      ]
+    },
+    inv: {
+      channels:['Sponsored Max','Spons. Affiliate'],
+      ch1:{label:'Sponsored Max',kpis:[
+        {label:'Revenue',value:'$14,260',change:-37.07,prev:'$22,660',status:'bad'},
+        {label:'Amount Spent',value:'$2,000',change:-58.85,prev:'$4,860',status:'good',inverted:true},
+        {label:'ROAS',value:'7.13x',change:52.58,prev:'4.67x',status:'good'},
+        {label:'CTR',value:'2.47%',change:25.38,prev:'1.97%',status:'good'}
+      ]},
+      ch2:{label:'Spons. Affiliate',kpis:[
+        {label:'Revenue',value:'$3,455',change:-9.90,prev:'$3,835',status:'bad'},
+        {label:'Amount Spent',value:'$353.96',change:-11.52,prev:'$400.04',status:'good',inverted:true},
+        {label:'ROAS',value:'9.76x',change:1.77,prev:'9.59x',status:'good'},
+        {label:'Orders',value:'27',change:-44.90,prev:'49',status:'bad'}
+      ]},
+      revData:{mar:[22660,3835],apr:[14260,3455]},
+      spendData:{mar:[4860,400],apr:[2000,354]},
+      roasData:{mar:[4.67,9.59],apr:[7.13,9.76]},
+      table:[
+        {ch:'Sponsored Max',rows:[['Revenue','$22,660','$14,260','-37.1%','neg'],['Spend','$4,860','$2,000','-58.8%','pos'],['ROAS','4.67x','7.13x','+52.6%','pos'],['CTR','1.97%','2.47%','+25.4%','pos']]},
+        {ch:'Spons. Affiliate',rows:[['Revenue','$3,835','$3,455','-9.9%','neg'],['Spend','$400','$354','-11.5%','pos'],['ROAS','9.59x','9.76x','+1.8%','pos'],['Orders','49','27','-44.9%','neg']]}
+      ],
+      totals:['$26,495 rev / $5,260 spend','$17,715 rev / $2,354 spend','ROAS: 5.04x → 7.53x','pos'],
+      insights:[
+        'Sponsored Max ROAS jumped 52.6% (4.67x → 7.13x) — spend cut 58.8% while revenue only dropped 37.1%. Much more efficient.',
+        'CTR improved 25.4% (1.97% → 2.47%) showing better ad targeting even with lower spend.',
+        'Affiliate holds steady — ROAS at 9.76x (+1.8%), but orders dropped 44.9% (49 → 27).',
+        'Combined ROAS improved dramatically from 5.04x to 7.53x. Spend efficiency at its best — room to scale back up carefully.'
+      ]
+    },
+    tops: {
+      skus:[
+        {rank:1,name:'Trapo Car Mat - Toyota Corolla Altis (2019+)',category:'Car Mat',units:4,revenue:715,prevUnits:0,prevRevenue:0},
+        {rank:2,name:'Trapo i-Sight Dashcam S-650 2K HDR',category:'Dashcam',units:3,revenue:655,prevUnits:6,prevRevenue:1310},
+        {rank:3,name:'Trapo Car Mat - BYD Sealion 7',category:'Car Mat',units:3,revenue:567,prevUnits:2,prevRevenue:378},
+        {rank:4,name:'Trapo Hydrophobic Wiper Blades [M Series]',category:'Wiper',units:20,revenue:537,prevUnits:38,prevRevenue:1020},
+        {rank:5,name:'Trapo Car Mat - Nissan Serena e-Power C28',category:'Car Mat',units:2,revenue:507,prevUnits:0,prevRevenue:0}
+      ],
+      categories:[
+        {name:'Car Mat',units:60,revenue:10362,pct:64.3,prevUnits:100,prevRevenue:16756},
+        {name:'Wiper',units:84,revenue:3836,pct:23.8,prevUnits:125,prevRevenue:5588},
+        {name:'Car Care',units:86,revenue:1014,pct:6.3,prevUnits:75,prevRevenue:943},
+        {name:'Dashcam',units:3,revenue:655,pct:4.1,prevUnits:7,prevRevenue:1434},
+        {name:'Accessories',units:16,revenue:240,pct:1.5,prevUnits:30,prevRevenue:426}
+      ],
+      modelGroups:[
+        {
+          label:'Car Mat',
+          models:[
+            {rank:1,name:'Toyota',units:12,revenue:2312},
+            {rank:2,name:'BYD',units:10,revenue:1682},
+            {rank:3,name:'Honda',units:7,revenue:1326},
+            {rank:4,name:'Nissan',units:4,revenue:702},
+            {rank:5,name:'BMW',units:3,revenue:533},
+            {rank:6,name:'Mercedes',units:3,revenue:462},
+            {rank:7,name:'Xpeng',units:2,revenue:410},
+            {rank:8,name:'Peugeot',units:2,revenue:386},
+            {rank:9,name:'Tesla',units:2,revenue:344},
+            {rank:10,name:'Volvo',units:2,revenue:320}
+          ]
+        },
+        {
+          label:'Wiper',
+          models:[
+            {rank:1,name:'Mercedes',units:14,revenue:785},
+            {rank:2,name:'Generic',units:29,revenue:720},
+            {rank:3,name:'BMW',units:11,revenue:585},
+            {rank:4,name:'BYD',units:7,revenue:382},
+            {rank:5,name:'Toyota',units:5,revenue:317},
+            {rank:6,name:'Audi',units:5,revenue:277},
+            {rank:7,name:'Honda',units:3,revenue:200},
+            {rank:8,name:'Mazda',units:3,revenue:170},
+            {rank:9,name:'Volkswagen',units:2,revenue:118},
+            {rank:10,name:'Hyundai',units:2,revenue:101}
+          ]
+        }
+      ],
+      insights:[
+        '<strong>Severe volume decline across the board</strong> — Orders dropped 32% (263 → 179) and GMV fell 36% ($25,146 → $16,107). Only Car Care grew in revenue (+7.5%).',
+        '<strong>Car Mat still dominates revenue</strong> at 64.3% share ($10,362) but down 38% from Mar. Toyota leads with $2,312 revenue; BYD is a strong #2 at $1,682.',
+        '<strong>Wiper volume dropped 33%</strong> (125 → 84 units) with revenue down 31%. Mercedes leads Lazada wiper revenue ($785), unlike Shopee where Tesla leads.',
+        '<strong>Two new Car Mat SKUs entered Top 5</strong> — Toyota Corolla Altis and Nissan Serena e-Power are new entries with 0 Mar sales, showing fresh demand signals.',
+        '<strong>Dashcam revenue halved</strong> ($1,434 → $655) with units dropping from 7 to 3. The S-650 model still holds #2 overall but volume is fragile.'
+      ]
+    },
+    strat: {
+      target:{goal:22100,aprActual:16107,aprPct:77.8,status:'Recovery',statusColor:'#f4a742',adsBudget:2652},
+      rationale:'May target $22,100 (up from $20,700 in Apr). Apr missed at $16,107. Ads budget: $2,652 (12% of target). ROAS improved to 7.53x — scale Sponsored Max back up within budget.',
+      inv:[
+        {ch:'Sponsored Max',aprSpend:'$2,000',aprRoas:'7.13x',mayBudget:'~$2,300 ↑',action:'Scale up. ROAS jumped 52.6% — room to grow within $2,652 budget.',cls:'pos'},
+        {ch:'Affiliate',aprSpend:'$354',aprRoas:'9.76x',mayBudget:'~$352',action:'Maintain. Efficient but order volume dropped 45%.',cls:'neu'}
+      ],
+      actions:[
+        {text:'<strong>Scale Sponsored Max back up:</strong> ROAS jumped 52.6% (4.67x→7.13x) after spend cut. Increase budget 25-50% during 5.5 mega campaign to capture recovery volume.',priority:'opp'},
+        {text:'<strong>5.5 After Party is key:</strong> Lazada\'s 3-day After Party (May 8–10) gives extra campaign days. Use for clearance bundles and retargeting.',priority:'opp'},
+        {text:'<strong>New SKU signals:</strong> Toyota Corolla Altis and Nissan Serena e-Power entered Top 5 from zero. Keep adding new car model listings.',priority:'med'},
+        {text:'<strong>CTR momentum:</strong> CTR improved 25.4% in Apr. Keep optimizing product images and titles.',priority:'med'}
+      ],
+      risks:[
+        {text:'Orders -32% and GMV -36% in April. If 5.5 campaign doesn\'t show recovery, the decline may be structural.',level:'high'},
+        {text:'AOV slipped 5.9% ($95.61→$89.99). Lower basket size compounds the order drop.',level:'med'}
+      ]
+    }
+  },
+  tiktok: {
+    period: 'Mar 1–31 vs Apr 1–30',
+    periodLabels: ['Mar 1–31','Apr 1–30'],
+    perf: {
+      target:{current:27542,goal:50000,pct:55.1,remaining:'$22,458 short of target'},
+      kpis:[
+        {label:'Orders',value:'545',change:-26.05,prev:'737',status:'bad'},
+        {label:'GMV',value:'$27,542',change:-32.01,prev:'$40,507',status:'bad'},
+        {label:'Avg Daily GMV',value:'$918',change:-29.74,prev:'$1,307',status:'bad'},
+        {label:'AOV',value:'$50.00',change:-7.41,prev:'$54.00',status:'bad'},
+        {label:'Visitors',value:'11,476',change:-12.78,prev:'13,157',status:'bad'},
+        {label:'Cancelled Sales',value:'$2,673',change:13.60,prev:'$2,353',status:'bad',inverted:true},
+        {label:'Conversion Rate',value:'4.75%',change:-15.18,prev:'5.60%',status:'bad'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[737,40.51],apr:[545,27.54]},
+      visitors:{mar:13157,apr:11476},cr:{mar:5.60,apr:4.75},
+      momLabels:['Orders','GMV','ADGMV','AOV','Visitors','Cancelled $','CR%'],
+      momValues:[-26.05,-32.01,-29.74,-7.41,-12.78,13.60,-15.18],
+      momInverted:['Cancelled $'],
+      insights:[
+        'GMV dropped 32% ($40,507 → $27,542). Only 55.1% of $50K target achieved — $22,458 short.',
+        'Orders down 26% (737 → 545) with AOV also declining 7.4% ($54 → $50). Double contraction.',
+        'Visitors fell 12.8% (13,157 → 11,476) AND conversion rate dropped 15.2% (5.60% → 4.75%). Both traffic and conversion declining.',
+        'Cancelled Sales increased 13.6% ($2,353 → $2,673) — a negative signal on order quality.',
+        'Every single metric is trending downward. TikTok needs urgent attention on traffic acquisition and conversion optimization.'
+      ]
+    },
+    inv: {
+      channels:['Product GMV','Live GMV'],
+      ch1:{label:'Product GMV',kpis:[
+        {label:'Revenue',value:'$9,252',change:-43.96,prev:'$16,511',status:'bad'},
+        {label:'Amount Spent',value:'$1,245',change:-47.67,prev:'$2,379',status:'good',inverted:true},
+        {label:'ROAS',value:'7.43x',change:7.06,prev:'6.94x',status:'good'},
+        {label:'Orders',value:'300',change:-33.18,prev:'449',status:'bad'}
+      ]},
+      ch2:{label:'Live GMV',kpis:[
+        {label:'Revenue',value:'$16,673',change:-25.40,prev:'$22,351',status:'bad'},
+        {label:'Amount Spent',value:'$2,928',change:-8.84,prev:'$3,212',status:'good',inverted:true},
+        {label:'ROAS',value:'5.69x',change:-18.25,prev:'6.96x',status:'bad'},
+        {label:'Views',value:'84,808',change:-12.45,prev:'96,870',status:'bad'}
+      ]},
+      revData:{mar:[16511,22351],apr:[9252,16673]},
+      spendData:{mar:[2379,3212],apr:[1245,2928]},
+      roasData:{mar:[6.94,6.96],apr:[7.43,5.69]},
+      table:[
+        {ch:'Product GMV',rows:[['Revenue','$16,511','$9,252','-44.0%','neg'],['Spend','$2,379','$1,245','-47.7%','pos'],['ROAS','6.94x','7.43x','+7.1%','pos'],['Orders','449','300','-33.2%','neg']]},
+        {ch:'Live GMV',rows:[['Revenue','$22,351','$16,673','-25.4%','neg'],['Spend','$3,212','$2,928','-8.8%','pos'],['ROAS','6.96x','5.69x','-18.3%','neg'],['Views','96,870','84,808','-12.5%','neg']]}
+      ],
+      totals:['$38,862 rev / $5,591 spend','$25,925 rev / $4,173 spend','ROAS: 6.95x → 6.21x','neg'],
+      insights:[
+        'Product GMV ROAS improved 7.1% (6.94x → 7.43x) — spend was cut harder (-47.7%) than revenue fell (-44.0%). More efficient but much smaller scale.',
+        'Live GMV is the bigger channel ($16,673 vs $9,252) but ROAS dropped 18.3% (6.96x → 5.69x). Live views fell 12.5% (96,870 → 84,808).',
+        'Combined revenue down 33.3% ($38,862 → $25,925). Overall ROAS declined from 6.95x to 6.21x.',
+        'Live GMV still drives 64% of TikTok revenue. Improving live stream frequency and engagement is critical to recovery.'
+      ]
+    },
+    tops: {
+      skus:[
+        {rank:1,name:'[Free Installation] Trapo i-Sight Dashcam',category:'Dashcam',units:11,revenue:3048,prevUnits:6,prevRevenue:1628},
+        {rank:2,name:'Trapo Hydrophobic Coating Wiper Blades',category:'Wiper',units:29,revenue:783,prevUnits:45,prevRevenue:1252},
+        {rank:3,name:'Trapo Car Mat Compatible',category:'Car Mat',units:4,revenue:757,prevUnits:1,prevRevenue:246},
+        {rank:4,name:'Trapo Scented Stone Air Freshener',category:'Accessories',units:37,revenue:722,prevUnits:64,prevRevenue:1251},
+        {rank:5,name:'[NOW WITH NEW LABEL] Trapo Car Care',category:'Car Care',units:63,revenue:681,prevUnits:68,prevRevenue:716}
+      ],
+      categories:[
+        {name:'Car Mat',units:65,revenue:11271,pct:44.7,prevUnits:130,prevRevenue:21733},
+        {name:'Wiper',units:140,revenue:6600,pct:26.2,prevUnits:164,prevRevenue:7282},
+        {name:'Dashcam',units:11,revenue:3047,pct:12.1,prevUnits:6,prevRevenue:1627},
+        {name:'Car Care',units:240,revenue:2720,pct:10.8,prevUnits:302,prevRevenue:3800},
+        {name:'Accessories',units:131,revenue:1552,pct:6.2,prevUnits:167,prevRevenue:2353}
+      ],
+      modelGroups:[
+        {
+          label:'Car Mat',
+          models:[
+            {rank:1,name:'Mercedes',units:10,revenue:2136},
+            {rank:2,name:'Honda',units:12,revenue:1593},
+            {rank:3,name:'BMW',units:6,revenue:1290},
+            {rank:4,name:'Toyota',units:9,revenue:1286},
+            {rank:5,name:'KIA',units:4,revenue:773},
+            {rank:6,name:'Jaecoo',units:2,revenue:670},
+            {rank:7,name:'Generic',units:3,revenue:575},
+            {rank:8,name:'Suzuki',units:3,revenue:449},
+            {rank:9,name:'Tesla',units:2,revenue:344},
+            {rank:10,name:'BYD',units:2,revenue:321}
+          ]
+        },
+        {
+          label:'Wiper',
+          models:[
+            {rank:1,name:'Generic',units:54,revenue:1438},
+            {rank:2,name:'Mercedes',units:20,revenue:1144},
+            {rank:3,name:'Honda',units:16,revenue:1002},
+            {rank:4,name:'Toyota',units:15,revenue:868},
+            {rank:5,name:'BYD',units:7,revenue:428},
+            {rank:6,name:'Audi',units:5,revenue:333},
+            {rank:7,name:'BMW',units:5,revenue:312},
+            {rank:8,name:'Mitsubishi',units:4,revenue:284},
+            {rank:9,name:'Hyundai',units:4,revenue:226},
+            {rank:10,name:'Tesla',units:3,revenue:152}
+          ]
+        }
+      ],
+      insights:[
+        '<strong>Dashcam is the #1 SKU and fastest-growing category</strong> — revenue up 87.3% ($1,627 → $3,047) with units nearly doubling (6 → 11). The i-Sight Dashcam alone generated $3,048.',
+        '<strong>Car Mat revenue nearly halved</strong> (-48.1%, $21,733 → $11,271) with units dropping 50% (130 → 65). Mercedes leads TikTok Car Mat revenue ($2,136) — different from Shopee/Lazada where Toyota leads.',
+        '<strong>Car Care leads in unit volume</strong> at 240 units but only $2,720 revenue (10.8% share). Low AOV category — mostly the Scented Stone and car care products.',
+        '<strong>Every category except Dashcam declined</strong> in both units and revenue. Wiper held up relatively (-9.4% rev) while Accessories dropped hardest (-34.0% rev).',
+        '<strong>Jaecoo appears as a new brand</strong> at #6 for Car Mat ($670) — not seen on Shopee or Lazada. TikTok may be reaching different car owner demographics.'
+      ]
+    },
+    strat: {
+      target:{goal:46000,aprActual:27542,aprPct:55.1,status:'Urgent Fix',statusColor:'#db4437',adsBudget:5520},
+      rationale:'May target $46,000 (down from $50K in Apr). Apr hit only $27,542 (55.1%). Ads budget: $5,520 (12% of target). Fix CR and cancelled sales before scaling. Concentrate spend on Live GMV promo windows.',
+      inv:[
+        {ch:'Product GMV',aprSpend:'$1,245',aprRoas:'7.43x',mayBudget:'~$1,800 ↑',action:'Increase — ROAS improved 7.1%. Scale during 5.5 and Payday windows.',cls:'pos'},
+        {ch:'Live GMV',aprSpend:'$2,928',aprRoas:'5.69x',mayBudget:'~$3,720 ↑',action:'More budget but concentrate on promo windows. Improve live quality.',cls:'neu'}
+      ],
+      actions:[
+        {text:'<strong>Fix cancelled sales:</strong> +13.6% increase ($2,353→$2,673) is leaking revenue. Audit by SKU and payment method.',priority:'high'},
+        {text:'<strong>Concentrate Live sessions:</strong> Live GMV drives 64% of revenue. Don\'t spread thin — focus lives around the 4 promo windows with higher production quality.',priority:'high'},
+        {text:'<strong>Dashcam is TikTok\'s hero:</strong> #1 SKU, +87.3% category growth. Visual, demo-friendly. Feature in every live session and short video.',priority:'opp'},
+        {text:'<strong>Conversion rate recovery:</strong> CR dropped 15.2% (5.60%→4.75%). Review product pages, pricing, and checkout friction. TikTok-exclusive flash deals during 5.5.',priority:'high'},
+        {text:'<strong>Jaecoo opportunity:</strong> Only appears on TikTok (#6 Car Mat, $670). Create Jaecoo-specific content to own this niche.',priority:'med'}
+      ],
+      risks:[
+        {text:'Every single metric trending downward. If 5.5 campaign doesn\'t reverse the trend, consider reallocating TikTok budget to Shopee/Lazada.',level:'high'},
+        {text:'Cancelled sales rising while volume drops — could indicate fraud or product mismatch issues.',level:'high'}
+      ]
+    }
+  },
+  website: {
+    period: 'Mar 1–31 vs Apr 1–30',
+    periodLabels: ['Mar 1–31','Apr 1–30'],
+    perf: {
+      visitorLabel:'Sessions',
+      target:{current:17395,goal:28000,pct:62.1,remaining:'$10,605 short of target'},
+      kpis:[
+        {label:'Orders',value:'176',change:-25.74,prev:'237',status:'bad'},
+        {label:'GMV',value:'$17,395',change:-33.52,prev:'$26,167',status:'bad'},
+        {label:'Avg Daily GMV',value:'$579',change:-31.40,prev:'$844',status:'bad'},
+        {label:'AOV',value:'$98.56',change:-10.60,prev:'$110.25',status:'bad'},
+        {label:'Sessions',value:'9,586',change:-16.16,prev:'11,434',status:'bad'},
+        {label:'Conversion Rate',value:'1.24%',change:-7.46,prev:'1.34%',status:'bad'}
+      ],
+      barData:{labels:['Orders','GMV ($K)'],mar:[237,26.17],apr:[176,17.40]},
+      visitors:{mar:11434,apr:9586},cr:{mar:1.34,apr:1.24},
+      momLabels:['Orders','GMV','ADGMV','AOV','Sessions','CR%'],
+      momValues:[-25.74,-33.52,-31.40,-10.60,-16.16,-7.46],
+      momInverted:[],
+      insights:[
+        'April target missed significantly — 62.1% achievement ($17,395 of $28,000). $10,605 shortfall.',
+        'GMV dropped 33.5% ($26,167 → $17,395). Every single metric declined — orders, AOV, sessions, and CR all down.',
+        'Meta Paid Social sessions collapsed 58.1% (4,138 → 1,734) — the biggest traffic loss and primary driver of the GMV decline.',
+        'AOV declined 10.6% ($110.25 → $98.56). Combined with fewer orders (-25.7%), the revenue hit is compounded.',
+        'Organic Search (SEO) was the only growth channel — sessions up 7.1% (2,408 → 2,580). A bright spot to build on.',
+        'Conversion Rate dipped 7.5% (1.34% → 1.24%). Website needs both more traffic AND better conversion.'
+      ]
+    },
+    inv: {
+      channels:['Meta Ads','Google Ads'],
+      ch1:{label:'Meta Ads',kpis:[
+        {label:'Revenue',value:'$11,094',change:-47.52,prev:'$21,138',status:'bad'},
+        {label:'Amount Spent',value:'$1,149',change:-47.13,prev:'$2,173',status:'good',inverted:true},
+        {label:'ROAS',value:'9.65x',change:-0.74,prev:'9.73x',status:'bad'},
+        {label:'Sessions',value:'1,734',change:-58.10,prev:'4,138',status:'bad'}
+      ]},
+      ch2:{label:'Google Ads',kpis:[
+        {label:'Revenue',value:'$25,469',change:6.89,prev:'$23,828',status:'good'},
+        {label:'Amount Spent',value:'$1,014',change:0.01,prev:'$1,014',status:'good',inverted:true},
+        {label:'ROAS',value:'25.11x',change:6.87,prev:'23.50x',status:'good'},
+        {label:'Sessions',value:'691',change:-12.86,prev:'793',status:'bad'}
+      ]},
+      revData:{mar:[21138,23828],apr:[11094,25469]},
+      spendData:{mar:[2173,1014],apr:[1149,1014]},
+      roasData:{mar:[9.73,23.50],apr:[9.65,25.11]},
+      table:[
+        {ch:'Meta Ads',rows:[['Revenue','$21,138','$11,094','-47.5%','neg'],['Spend','$2,173','$1,149','-47.1%','pos'],['ROAS','9.73x','9.65x','-0.7%','neg'],['Sessions','4,138','1,734','-58.1%','neg']]},
+        {ch:'Google Ads',rows:[['Revenue','$23,828','$25,469','+6.9%','pos'],['Spend','$1,014','$1,014','+0.0%','neu'],['ROAS','23.50x','25.11x','+6.9%','pos'],['Sessions','793','691','-12.9%','neg']]}
+      ],
+      totals:['$26,167 rev / $3,187 spend','$17,395 rev / $2,163 spend','ROAS: 8.21x → 8.04x','neg'],
+      insights:[
+        'Meta Ads revenue nearly halved (-47.5%, $21,138 → $11,094). Sessions collapsed 58.1% (4,138 → 1,734) — the primary driver of Website\'s GMV decline.',
+        'Google Ads is the standout — revenue grew 6.9% ($23,828 → $25,469) with virtually flat spend ($1,014). ROAS improved to 25.11x.',
+        'Google Ads ROAS (25.11x) is 2.6x better than Meta Ads (9.65x). Strong case to shift more budget toward Google.',
+        'Combined ROAS slipped slightly from 8.21x to 8.04x, dragged down by Meta\'s performance. Overall spend efficiency remains healthy.'
+      ]
+    },
+    strat: {
+      target:{goal:24000,aprActual:17395,aprPct:62.1,status:'Recovery',statusColor:'#f4a742',adsBudget:2880},
+      rationale:'May target $24,000 (down from $28K in Apr). Apr missed at $17,395 (62.1%). Ads budget: $2,880 (12% of target). Google Ads is the star at 25.11x ROAS — scale it. Meta needs restructuring after 58% session collapse. 3 campaign waves to drive recovery.',
+      inv:[
+        {ch:'Meta Ads',aprSpend:'$1,149',aprRoas:'9.65x',mayBudget:'~$1,200',action:'Restructure campaigns. Sessions collapsed 58%. Focus on retargeting + lookalikes. Refresh creatives for Mother\'s Day wave.',cls:'neg'},
+        {ch:'Google Ads',aprSpend:'$1,014',aprRoas:'25.11x',mayBudget:'~$1,680 ↑',action:'SCALE UP — 25.11x ROAS with growth at flat spend. Increase budget 66% to capture high-intent search traffic.',cls:'pos'}
+      ],
+      actions:[
+        {text:'<strong>Scale Google Ads aggressively:</strong> 25.11x ROAS is the highest across all platforms and channels. Increase budget from $1,014 to ~$1,680. Add branded + car-model-specific keywords.',priority:'opp'},
+        {text:'<strong>Restructure Meta campaigns:</strong> Sessions crashed 58.1%. Audit audiences, refresh creatives, shift to retargeting past buyers + cart abandoners for the 3 campaign waves.',priority:'high'},
+        {text:'<strong>Leverage SEO momentum:</strong> Organic Search grew 7.1% (2,408 → 2,580 sessions) — the only growing channel. Publish car-model landing pages to compound this.',priority:'opp'},
+        {text:'<strong>Website-exclusive promos:</strong> Member 9% + extra 5% stacking gives website a unique edge. Push member sign-ups across all 3 waves.',priority:'med'},
+        {text:'<strong>Wiper + Dashcam rainy season push:</strong> Wave 1 has Wiper 15% OFF, Wave 3 has Wiper + refill 10% OFF and Dashcam 10% OFF. Pair with Google Shopping campaigns.',priority:'med'}
+      ],
+      risks:[
+        {text:'Meta Ads session collapse (-58%) is severe. If not fixed, Website traffic depends almost entirely on organic + Google — limiting scale.',level:'high'},
+        {text:'CR at 1.24% is the lowest across all platforms. Site UX and product page optimization needed alongside traffic growth.',level:'med'}
+      ]
+    }
+  }
+};
+
+// May Promo Calendar (shared across platforms)
+const PROMO_CALENDAR = {
+  marketplace:[
+    {dates:'May 1–31',name:'BAU',type:'Side',mega:false,mechanics:'20% off ECO · Voucher 12% off (min $50, cap $6) · $18 off (min $140) · Bundle buy 2 get 3% off · New arrival: scent tag + 2 cloths, buy 3 get 1 free',platforms:{shopee:'May 1–31',lazada:'May 1–31',tiktok:'May 1–31'}},
+    {dates:'May 1–11',name:'5.5 Mother\'s Day Sale + After Party',type:'Mega',mega:true,mechanics:'<strong>"Take care of Mom on every journey, rain or shine"</strong><br>Storewide 12% OFF + ECO 30% · Voucher up to $18 · Bundle: buy 2 get 5% off, buy 3 get 8% off',platforms:{shopee:'May 1–11',lazada:'May 4 (8pm)–7 + May 8–10 After Party',tiktok:'May 3–5'}},
+    {dates:'May 14–17',name:'Mid-Month',type:'Mid-Month',mega:false,mechanics:'10% off + ECO 30% · Voucher up to $18 · GWP: Min spend $120 get a free scented tag',platforms:{shopee:'May 14 (8pm)–17',lazada:'May 14 (8pm)–17',tiktok:'May 14–17'}},
+    {dates:'May 15',name:'New Arrival — Scented Pot Launch',type:'Product Launch',mega:false,mechanics:'OXSP01–OXSP06 · Campaign: Buy any 2, Free 1 · BAU: Buy any 3, Free 1',platforms:{shopee:'May 15',lazada:'May 15',tiktok:'—'}},
+    {dates:'May 24–27',name:'Payday / Month End',type:'PayDay',mega:false,mechanics:'11% off + ECO 30% · Voucher up to $18 · Bundle: buy 2 get 5% off, buy 3 get 8% · GWP: Min spend $120 get a free scented tag',platforms:{shopee:'May 24 (8pm)–27',lazada:'May 24 (8pm)–27',tiktok:'May 24–27'}}
+  ],
+  website:[
+    {dates:'May 1–31',name:'BAU Campaign',type:'Side',mega:false,mechanics:'Member 9% off · Voucher $10 off (min $100), $22 off (min $180) · Wiper Promo: buy any wiper free 1 Hydroclear · Bundle: buy 2 save 10% (Microfibers) · New arrival: 2 cloths + scent tag, buy 3 get 1 free'},
+    {dates:'May 4–7',name:'Wave 1: Double Digit Sale (Mother\'s Day)',type:'Main',mega:true,mechanics:'<strong>"Take care of Mom on every journey, rain or shine"</strong><br>12% OFF Storewide + 5% OFF Member · Voucher up to $22 · Wiper 15% OFF'},
+    {dates:'May 14–17',name:'Wave 2: Mid Month Sale + Scented Pot Launch',type:'Main + Launch',mega:false,mechanics:'10% Off Storewide + 5% OFF Member · Voucher up to $22 · Volume: buy 2 save 10% (Rainguard/water repellant), buy 3 save 15% (Microfiber) · GWP: Min spend $120 get a free scented tag<br><strong>NEW LAUNCH: Scented Pot (OXSP01–OXSP06)</strong> — Campaign: Buy 2, Free 1 · BAU: Buy 3, Free 1'},
+    {dates:'May 25–28',name:'Wave 3: Payday Sale',type:'Main',mega:false,mechanics:'11% OFF Storewide + 5% OFF Member · Voucher up to $22 · Wiper + refill 10% OFF · Dashcam 10% OFF · GWP: Min spend $120 get a free scented tag'}
+  ]
+};
+
+const CROSS = {
+  platforms:[
+    {key:'shopee',name:'Shopee',color:'#ee4d2d',target:56400,actual:61207,pct:108.5,prevGMV:55869,momChg:9.55,orders:742,prevOrders:727,aov:82.49,prevAov:76.85,budget:5640,spending:7800,roas:7.85,blendedNote:'Shopee Ads $7,800 + Affiliate $540'},
+    {key:'lazada',name:'Lazada',color:'#0f1689',target:20700,actual:16107,pct:77.8,prevGMV:25146,momChg:-35.94,orders:179,prevOrders:263,aov:89.99,prevAov:95.61,budget:2070,spending:2000,roas:8.05,blendedNote:'Sponsored Max $2,000 + Affiliate $354'},
+    {key:'tiktok',name:'TikTok',color:'#69c9d0',target:50000,actual:27542,pct:55.1,prevGMV:40507,momChg:-32.01,orders:545,prevOrders:737,aov:50.00,prevAov:54.00,budget:5000,spending:4174,roas:6.60,blendedNote:'Product GMV $1,245 + Live GMV $2,928'},
+    {key:'website',name:'Website',color:'#1565c0',target:28000,actual:17395,pct:62.1,prevGMV:26167,momChg:-33.52,orders:176,prevOrders:237,aov:98.56,prevAov:110.25,budget:2800,spending:2163,roas:8.04,blendedNote:'Meta Ads $1,149 + Google Ads $1,014'}
+  ],
+  totals:{target:155100,actual:122251,pct:78.8,prevGMV:147689,momChg:-17.22,orders:1642,prevOrders:1964,budget:15510,spending:16137,roas:7.58}
+};
+
+let charts = [];
+let curPlatform = 'shopee';
+let curView = 'perf';
+
+function destroyCharts(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[]}
+function setAccent(p){document.body.style.setProperty('--accent',ACCENTS[p]||ACCENTS.cross)}
+
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#2a2a4a';
+
+function chgClass(change, inverted){
+  if(inverted) return change >= 0 ? 'neg' : 'pos';
+  return change >= 0 ? 'pos' : 'neg';
+}
+
+function buildTabs(){
+  const t=document.getElementById('tabs');
+  t.innerHTML='';
+  PLATFORMS.forEach(p=>{
+    const b=document.createElement('button');
+    const isPending=PENDING.includes(p);
+    b.className='tab'+(p===curPlatform?' active':'')+(isPending?' pending':'');
+    b.textContent=PLABELS[p]+(isPending?' (pending)':'');
+    b.style.setProperty('--accent',ACCENTS[p]);
+    b.onclick=()=>{curPlatform=p;curView='perf';render()};
+    t.appendChild(b);
+  });
+}
+
+function buildViewToggle(){
+  const vt=document.getElementById('viewToggle');
+  if(curPlatform==='combined'){vt.innerHTML='<button class="vbtn active" style="border-color:#9c27b0">Sales & Investment Comparison</button>';return}
+  if(PENDING.includes(curPlatform)){vt.innerHTML='';return}
+  const d=DATA[curPlatform];
+  if(!d){vt.innerHTML='';return}
+  let html='<button class="vbtn'+(curView==='perf'?' active':'')+'" onclick="curView=\'perf\';render()">Performance</button>';
+  if(d.inv) html+='<button class="vbtn'+(curView==='inv'?' active':'')+'" onclick="curView=\'inv\';render()">Investment</button>';
+  if(d.tops) html+='<button class="vbtn'+(curView==='tops'?' active':'')+'" onclick="curView=\'tops\';render()">Top Sellers</button>';
+  if(d.strat) html+='<button class="vbtn'+(curView==='strat'?' active':'')+'" onclick="curView=\'strat\';render()" style="margin-left:auto;border-color:#ff9800;color:'+(curView==='strat'?'#fff':'#ff9800')+'">May Strategy</button>';
+  vt.innerHTML=html;
+}
+
+function render(){
+  destroyCharts();
+  setAccent(curPlatform);
+  buildTabs();
+  buildViewToggle();
+  const main=document.getElementById('main');
+  if(curPlatform==='combined'){renderCross(main);return}
+  if(PENDING.includes(curPlatform)){
+    main.innerHTML=`<div class="pending-banner"><h3>Data Pending</h3><p>${PLABELS[curPlatform]} data has not been submitted yet.<br>Fill in the Excel template and share it back to update this platform.</p></div>`;
+    return;
+  }
+  const d=DATA[curPlatform];
+  if(!d){main.innerHTML='<p>No data</p>';return}
+  if(curView==='perf') renderPerf(main,d,curPlatform);
+  else if(curView==='inv'&&d.inv) renderInv(main,d,curPlatform);
+  else if(curView==='tops'&&d.tops) renderTops(main,d,curPlatform);
+  else if(curView==='strat'&&d.strat) renderStrategy(main,d,curPlatform);
+}
+
+function renderKpiCard(k){
+  const arrow = k.change >= 0 ? '▲' : '▼';
+  const cls = chgClass(k.change, k.inverted);
+  const prevLabel = 'vs '+k.prev+' (Mar)';
+  return `<div class="kpi ${k.status}"><div class="kpi-label">${k.label}</div><div class="kpi-val">${k.value}</div><div class="kpi-chg ${cls}">${arrow} ${Math.abs(k.change).toFixed(2)}%</div><div class="kpi-sub">${prevLabel}</div></div>`;
+}
+
+function renderPerf(el,d,p){
+  const pf=d.perf;const accent=ACCENTS[p];
+  const tPct=pf.target.pct;
+  const tColor=tPct>=100?'#0f9d58':tPct>=90?'#0f9d58':tPct>=60?'#f4a742':'#db4437';
+  const vLabel=pf.visitorLabel||'Visitors';
+  const pLabels=d.periodLabels||d.period.split(' vs ');
+
+  const tExceeded=tPct>=100;
+  const tWidth=tExceeded?100:Math.min(tPct,100);
+  const tBorder=tExceeded?'#0f9d58':'#2a2a4a';
+  const tLabel=tExceeded?`${tPct}% ✓ TARGET EXCEEDED`:`${tPct}%`;
+  const tRemStyle=tExceeded?'color:#0f9d58;font-weight:600':'color:#db4437;font-weight:600';
+  let html=`<div class="target-bar" style="border:1px solid ${tBorder}"><div class="target-head"><h3>April GMV Target Progress</h3><span>$${pf.target.current.toLocaleString()} of $${pf.target.goal.toLocaleString()}</span></div><div class="ptrack"><div class="pfill" style="width:${tWidth}%;background:linear-gradient(90deg,${accent},${tColor})">${tLabel}</div></div><div class="plabels"><span>$0</span><span style="${tRemStyle}">${pf.target.remaining}</span><span>$${pf.target.goal.toLocaleString()}</span></div></div>`;
+
+  html+='<div class="kpi-grid">';
+  pf.kpis.forEach(k=>{ html += renderKpiCard(k); });
+  html+='</div>';
+
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Orders & GMV Comparison</h3><canvas id="c1"></canvas></div><div class="chart-box"><h3>${vLabel} & Conversion Rate</h3><canvas id="c2"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Month-over-Month Change (%)</h3><canvas id="c3"></canvas></div><div class="chart-box"><h3>GMV vs April Target</h3><canvas id="c4"></canvas></div></div>`;
+
+  html+=`<div class="insight-box"><h3>Key Findings</h3><ul>${pf.insights.map(i=>'<li>'+i+'</li>').join('')}</ul></div>`;
+  el.innerHTML=html;
+
+  const marC=accent,aprC='#ff9800';
+
+  charts.push(new Chart(document.getElementById('c1'),{type:'bar',data:{labels:pf.barData.labels,datasets:[{label:pLabels[0],data:pf.barData.mar,backgroundColor:marC,borderRadius:6},{label:pLabels[1],data:pf.barData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+
+  charts.push(new Chart(document.getElementById('c2'),{type:'bar',data:{labels:[pLabels[0],pLabels[1]],datasets:[{label:vLabel,data:[pf.visitors.mar,pf.visitors.apr],backgroundColor:[marC,aprC],borderRadius:6,yAxisID:'y'},{label:'CR%',data:[pf.cr.mar,pf.cr.apr],type:'line',borderColor:'#0f9d58',backgroundColor:'#0f9d58',pointRadius:6,pointBackgroundColor:'#0f9d58',borderWidth:3,yAxisID:'y1',tension:0.3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},title:{display:true,text:vLabel,font:{size:10},color:'#888'},ticks:{color:'#888'}},y1:{beginAtZero:true,position:'right',grid:{display:false},title:{display:true,text:'CR%',font:{size:10},color:'#888'},ticks:{callback:v=>v+'%',color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+
+  const momColors=pf.momLabels.map((l,i)=>{const v=pf.momValues[i];const inv=pf.momInverted.includes(l);return(inv?v<0:v>0)?'#0f9d58':'#db4437'});
+  charts.push(new Chart(document.getElementById('c3'),{type:'bar',data:{labels:pf.momLabels,datasets:[{label:'MoM Change %',data:pf.momValues,backgroundColor:momColors,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>(ctx.parsed.x>0?'+':'')+ctx.parsed.x.toFixed(2)+'%'}}},scales:{x:{grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'%',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  charts.push(new Chart(document.getElementById('c4'),{type:'bar',data:{labels:['April GMV'],datasets:[{label:'Target',data:[pf.target.goal],backgroundColor:'#2a2a4a',borderRadius:6},{label:'Achieved',data:[pf.target.current],backgroundColor:accent,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.x.toLocaleString()}}},scales:{x:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+}
+
+function renderInv(el,d,p){
+  const inv=d.inv;const accent=ACCENTS[p];
+  const pLabels=d.periodLabels||d.period.split(' vs ');
+  let html='';
+
+  if(inv.note) html+=`<div class="note-box"><strong>Note:</strong> ${inv.note}</div>`;
+
+  html+=`<div class="section-title">${inv.ch1.label}</div><div class="kpi-grid">`;
+  inv.ch1.kpis.forEach(k=>{ html += renderKpiCard(k); });
+  html+='</div>';
+
+  html+=`<div class="section-title">${inv.ch2.label}</div><div class="kpi-grid">`;
+  inv.ch2.kpis.forEach(k=>{ html += renderKpiCard(k); });
+  html+='</div>';
+
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Revenue by Channel</h3><canvas id="c1"></canvas></div><div class="chart-box"><h3>Spend by Channel</h3><canvas id="c2"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>ROAS Comparison</h3><canvas id="c3"></canvas></div><div class="chart-box"><h3>Spend Efficiency</h3><canvas id="c4"></canvas></div></div>`;
+
+  html+=`<table class="summary-table"><thead><tr><th>Channel</th><th>Metric</th><th>${pLabels[0]}</th><th>${pLabels[1]}</th><th>Change</th></tr></thead><tbody>`;
+  inv.table.forEach(ch=>{
+    ch.rows.forEach((r,i)=>{
+      html+='<tr>';
+      if(i===0) html+=`<td rowspan="${ch.rows.length}" class="channel-cell">${ch.ch}</td>`;
+      html+=`<td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="${r[4]}">${r[3]}</td></tr>`;
+    });
+  });
+  html+=`<tr class="totals-row"><td colspan="2">Combined Totals</td><td>${inv.totals[0]}</td><td>${inv.totals[1]}</td><td class="${inv.totals[3]}">${inv.totals[2]}</td></tr></tbody></table>`;
+
+  html+=`<div class="insight-box"><h3>Key Insights</h3><ul>${inv.insights.map(i=>'<li>'+i+'</li>').join('')}</ul></div>`;
+  el.innerHTML=html;
+
+  const marC=accent,aprC='#ff9800';
+
+  charts.push(new Chart(document.getElementById('c1'),{type:'bar',data:{labels:inv.channels,datasets:[{label:pLabels[0],data:inv.revData.mar,backgroundColor:marC,borderRadius:6},{label:pLabels[1],data:inv.revData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+
+  charts.push(new Chart(document.getElementById('c2'),{type:'bar',data:{labels:inv.channels,datasets:[{label:pLabels[0],data:inv.spendData.mar,backgroundColor:marC,borderRadius:6},{label:pLabels[1],data:inv.spendData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+v.toLocaleString(),color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+
+  charts.push(new Chart(document.getElementById('c3'),{type:'bar',data:{labels:inv.channels,datasets:[{label:pLabels[0],data:inv.roasData.mar,backgroundColor:marC,borderRadius:6},{label:pLabels[1],data:inv.roasData.apr,backgroundColor:aprC,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)+'x'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'x',color:'#888'}},x:{grid:{display:false},ticks:{color:'#888'}}}}}));
+
+  const effLabels=[inv.ch1.label+' (Mar)',inv.ch1.label+' (Apr)',inv.ch2.label+' (Mar)',inv.ch2.label+' (Apr)'];
+  const effData=[inv.roasData.mar[0],inv.roasData.apr[0],inv.roasData.mar[1],inv.roasData.apr[1]];
+  charts.push(new Chart(document.getElementById('c4'),{type:'bar',data:{labels:effLabels,datasets:[{label:'Revenue per $1',data:effData,backgroundColor:[marC,aprC,marC,aprC],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.x.toFixed(2)+' per $1 spent'}}},scales:{x:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+v,color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa',font:{size:10}}}}}}));
+}
+
+/* ── TOP SELLERS VIEW ── */
+function renderTops(el,d,p){
+  const tops=d.tops;const accent=ACCENTS[p];
+  let html='';
+
+  // Summary KPIs
+  const totalUnits=tops.skus.reduce((s,sk)=>s+sk.units,0);
+  const totalRev=tops.skus.reduce((s,sk)=>s+sk.revenue,0);
+  const prevTotalUnits=tops.skus.reduce((s,sk)=>s+(sk.prevUnits||0),0);
+  const prevTotalRev=tops.skus.reduce((s,sk)=>s+(sk.prevRevenue||0),0);
+  const unitChg=prevTotalUnits?((totalUnits-prevTotalUnits)/prevTotalUnits*100).toFixed(1):0;
+  const revChg=prevTotalRev?((totalRev-prevTotalRev)/prevTotalRev*100).toFixed(1):0;
+
+  // Total all categories
+  const allCatUnits=tops.categories.reduce((s,c)=>s+c.units,0);
+  const allCatRev=tops.categories.reduce((s,c)=>s+c.revenue,0);
+  const prevAllCatUnits=tops.categories.reduce((s,c)=>s+(c.prevUnits||0),0);
+  const prevAllCatRev=tops.categories.reduce((s,c)=>s+(c.prevRevenue||0),0);
+  const allUnitChg=prevAllCatUnits?((allCatUnits-prevAllCatUnits)/prevAllCatUnits*100).toFixed(1):0;
+  const allRevChg=prevAllCatRev?((allCatRev-prevAllCatRev)/prevAllCatRev*100).toFixed(1):0;
+
+  html+=`<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">`;
+  html+=`<div class="kpi ${allUnitChg>=0?'good':'bad'}"><div class="kpi-label">Total Units Sold</div><div class="kpi-val">${allCatUnits.toLocaleString()}</div><div class="kpi-chg ${allUnitChg>=0?'pos':'neg'}">${allUnitChg>=0?'▲':'▼'} ${Math.abs(allUnitChg)}%</div><div class="kpi-sub">vs ${prevAllCatUnits.toLocaleString()} (Mar)</div></div>`;
+  html+=`<div class="kpi ${allRevChg>=0?'good':'bad'}"><div class="kpi-label">Total Revenue</div><div class="kpi-val">$${allCatRev.toLocaleString()}</div><div class="kpi-chg ${allRevChg>=0?'pos':'neg'}">${allRevChg>=0?'▲':'▼'} ${Math.abs(allRevChg)}%</div><div class="kpi-sub">vs $${prevAllCatRev.toLocaleString()} (Mar)</div></div>`;
+  html+=`<div class="kpi good"><div class="kpi-label">#1 Category (Revenue)</div><div class="kpi-val">${tops.categories[0].name}</div><div class="kpi-sub">${tops.categories[0].pct}% share · $${tops.categories[0].revenue.toLocaleString()}</div></div>`;
+  const topUnitCat=[...tops.categories].sort((a,b)=>b.units-a.units)[0];
+  html+=`<div class="kpi good"><div class="kpi-label">#1 Category (Units)</div><div class="kpi-val">${topUnitCat.name}</div><div class="kpi-sub">${topUnitCat.units} units sold</div></div>`;
+  html+=`</div>`;
+
+  // Top 5 SKUs table
+  html+=`<div class="section-title">Top 5 SKUs by Revenue</div>`;
+  html+=`<table class="rank-table"><thead><tr><th style="width:30px">#</th><th>Product</th><th>Category</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th><th style="text-align:right">vs Mar Units</th><th style="text-align:right">vs Mar Rev</th></tr></thead><tbody>`;
+  tops.skus.forEach(sk=>{
+    const medalCls=sk.rank<=3?` rank-medal-${sk.rank}`:'';
+    const uChg=sk.prevUnits?((sk.units-sk.prevUnits)/sk.prevUnits*100).toFixed(1):'-';
+    const uCls=uChg>=0?'pos':'neg';
+    const rChg=sk.prevRevenue?((sk.revenue-sk.prevRevenue)/sk.prevRevenue*100).toFixed(1):'-';
+    const rCls=rChg>=0?'pos':'neg';
+    html+=`<tr><td class="rank-num${medalCls}">${sk.rank<=3?['🥇','🥈','🥉'][sk.rank-1]:sk.rank}</td><td class="sku-name" style="max-width:280px;white-space:normal;font-size:0.72rem">${sk.name}</td><td><span class="cat-badge" style="background:${CAT_COLORS[sk.category]||'#607d8b'}22;color:${CAT_COLORS[sk.category]||'#607d8b'};border:1px solid ${CAT_COLORS[sk.category]||'#607d8b'}44">${sk.category}</span></td><td style="text-align:right;font-weight:600;color:#fff">${sk.units}</td><td style="text-align:right;font-weight:600;color:#fff">$${sk.revenue.toLocaleString()}</td><td style="text-align:right" class="${uCls}">${uChg>0?'+':''}${uChg}%</td><td style="text-align:right" class="${rCls}">${rChg>0?'+':''}${rChg}%</td></tr>`;
+  });
+  html+=`</tbody></table>`;
+
+  // Category charts
+  html+=`<div class="section-title">Sales by Category</div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Revenue by Category (Apr)</h3><canvas id="tc1"></canvas></div><div class="chart-box"><h3>Units Sold by Category (Apr)</h3><canvas id="tc2"></canvas></div></div>`;
+
+  // Category comparison table
+  html+=`<table class="rank-table"><thead><tr><th>Category</th><th style="text-align:right">Apr Units</th><th style="text-align:right">Apr Revenue</th><th style="text-align:right">Rev Share</th><th style="text-align:right">Mar Units</th><th style="text-align:right">Mar Revenue</th><th style="text-align:right">Rev MoM</th></tr></thead><tbody>`;
+  tops.categories.forEach(c=>{
+    const revMoM=c.prevRevenue?((c.revenue-c.prevRevenue)/c.prevRevenue*100).toFixed(1):'–';
+    const cls=revMoM>=0?'pos':'neg';
+    html+=`<tr><td><span class="cat-badge" style="background:${CAT_COLORS[c.name]||'#607d8b'}22;color:${CAT_COLORS[c.name]||'#607d8b'};border:1px solid ${CAT_COLORS[c.name]||'#607d8b'}44">${c.name}</span></td><td style="text-align:right;color:#fff">${c.units}</td><td style="text-align:right;color:#fff">$${c.revenue.toLocaleString()}</td><td style="text-align:right">${c.pct}%</td><td style="text-align:right">${c.prevUnits||'–'}</td><td style="text-align:right">$${(c.prevRevenue||0).toLocaleString()}</td><td style="text-align:right" class="${cls}">${revMoM>0?'+':''}${revMoM}%</td></tr>`;
+  });
+  // Totals
+  html+=`<tr style="background:#151528;font-weight:600;border-top:2px solid var(--accent)"><td style="color:#fff">Total</td><td style="text-align:right;color:#fff">${allCatUnits}</td><td style="text-align:right;color:#fff">$${allCatRev.toLocaleString()}</td><td style="text-align:right">100%</td><td style="text-align:right">${prevAllCatUnits}</td><td style="text-align:right">$${prevAllCatRev.toLocaleString()}</td><td style="text-align:right" class="${allRevChg>=0?'pos':'neg'}">${allRevChg>0?'+':''}${allRevChg}%</td></tr>`;
+  html+=`</tbody></table>`;
+
+  // MoM Category chart
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Category Revenue: Mar vs Apr</h3><canvas id="tc3"></canvas></div><div class="chart-box"><h3>Revenue Share (%)</h3><canvas id="tc4"></canvas></div></div>`;
+
+  // Model groups (Car Mat + Wiper)
+  if(tops.modelGroups){
+    tops.modelGroups.forEach((mg,gi)=>{
+      html+=`<div class="section-title">Top 10 Car Brands — ${mg.label}</div>`;
+      html+=`<table class="rank-table"><thead><tr><th style="width:30px">#</th><th>Car Brand / Model</th><th style="text-align:right">Units Sold</th><th style="text-align:right">Revenue</th><th style="text-align:right">Rev Share</th></tr></thead><tbody>`;
+      const mTotalRev=mg.models.reduce((s,m)=>s+m.revenue,0);
+      mg.models.forEach(m=>{
+        const medalCls=m.rank<=3?` rank-medal-${m.rank}`:'';
+        const share=(m.revenue/mTotalRev*100).toFixed(1);
+        html+=`<tr><td class="rank-num${medalCls}">${m.rank<=3?['🥇','🥈','🥉'][m.rank-1]:m.rank}</td><td class="sku-name">${m.name}</td><td style="text-align:right;font-weight:600;color:#fff">${m.units}</td><td style="text-align:right;font-weight:600;color:#fff">$${m.revenue.toLocaleString()}</td><td style="text-align:right;color:#aaa">${share}%</td></tr>`;
+      });
+      html+=`</tbody></table>`;
+
+      // Model chart
+      html+=`<div class="chart-row"><div class="chart-box"><h3>${mg.label} — Revenue by Brand</h3><canvas id="tm${gi}a"></canvas></div><div class="chart-box"><h3>${mg.label} — Units by Brand</h3><canvas id="tm${gi}b"></canvas></div></div>`;
+    });
+  }
+
+  // Insights (data-driven)
+  if(tops.insights&&tops.insights.length){
+    html+=`<div class="insight-box"><h3>Top Sellers Insights</h3><ul>${tops.insights.map(i=>'<li>'+i+'</li>').join('')}</ul></div>`;
+  }
+
+  el.innerHTML=html;
+
+  // ── CHARTS ──
+  const catLabels=tops.categories.map(c=>c.name);
+  const catRevs=tops.categories.map(c=>c.revenue);
+  const catUnits=tops.categories.map(c=>c.units);
+  const catColors=catLabels.map(l=>CAT_COLORS[l]||'#607d8b');
+
+  charts.push(new Chart(document.getElementById('tc1'),{type:'doughnut',data:{labels:catLabels,datasets:[{data:catRevs,backgroundColor:catColors,borderColor:'#0f0f1a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>{const t=ctx.dataset.data.reduce((a,b)=>a+b,0);return ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+(ctx.parsed/t*100).toFixed(1)+'%)'}}}}}}));
+
+  charts.push(new Chart(document.getElementById('tc2'),{type:'bar',data:{labels:catLabels,datasets:[{label:'Units Sold',data:catUnits,backgroundColor:catColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa',font:{size:10}}}}}}));
+
+  // Mar vs Apr category
+  const prevCatRevs=tops.categories.map(c=>c.prevRevenue||0);
+  charts.push(new Chart(document.getElementById('tc3'),{type:'bar',data:{labels:catLabels,datasets:[{label:'Mar',data:prevCatRevs,backgroundColor:accent,borderRadius:6},{label:'Apr',data:catRevs,backgroundColor:'#ff9800',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v>=1000?(v/1000)+'K':v),color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa',font:{size:10}}}}}}));
+
+  // Share bar
+  const catPcts=tops.categories.map(c=>c.pct);
+  charts.push(new Chart(document.getElementById('tc4'),{type:'bar',data:{labels:catLabels,datasets:[{label:'Revenue Share',data:catPcts,backgroundColor:catColors,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.x+'% of revenue'}}},scales:{x:{beginAtZero:true,max:100,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'%',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // Model group charts
+  if(tops.modelGroups){
+    tops.modelGroups.forEach((mg,gi)=>{
+      const mLabels=mg.models.map(m=>m.name);
+      const mRevs=mg.models.map(m=>m.revenue);
+      const mUnits=mg.models.map(m=>m.units);
+      const mColor=CAT_COLORS[mg.label]||accent;
+
+      charts.push(new Chart(document.getElementById('tm'+gi+'a'),{type:'bar',data:{labels:mLabels,datasets:[{label:'Revenue',data:mRevs,backgroundColor:mColor,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.x.toLocaleString()}}},scales:{x:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v>=1000?(v/1000)+'K':v),color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+      charts.push(new Chart(document.getElementById('tm'+gi+'b'),{type:'bar',data:{labels:mLabels,datasets:[{label:'Units',data:mUnits,backgroundColor:mColor+'99',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+    });
+  }
+}
+
+/* ── STRATEGY VIEW ── */
+function renderStrategy(el,d,p){
+  const s=d.strat;const accent=ACCENTS[p];
+  let html='';
+
+  // Target card
+  html+=`<div class="strat-target"><div class="tgt-row"><div class="tgt-main">$${s.target.goal.toLocaleString()}</div><div style="flex:1"><div style="font-size:0.72rem;color:#888;font-weight:600">MAY GMV TARGET</div></div><div style="text-align:right"><div style="font-size:1.1rem;font-weight:800;color:#ff9800">$${s.target.adsBudget.toLocaleString()}</div><div style="font-size:0.65rem;color:#888;font-weight:600">ADS BUDGET (12%)</div></div><div class="tgt-badge" style="background:${s.target.statusColor}22;color:${s.target.statusColor};border:1px solid ${s.target.statusColor}44">${s.target.status}</div></div><div class="tgt-rationale">${s.rationale}</div><div class="tgt-apr">April actual: $${s.target.aprActual.toLocaleString()} (${s.target.aprPct}% of Apr target)</div></div>`;
+
+  // Target vs Apr comparison chart
+  html+=`<div class="chart-row"><div class="chart-box"><h3>May Target vs April Actual</h3><canvas id="sc1"></canvas></div><div class="chart-box"><h3>Investment Plan — ROAS by Channel</h3><canvas id="sc2"></canvas></div></div>`;
+
+  // Investment table
+  html+=`<div class="section-title">Investment Allocation</div>`;
+  html+=`<table class="inv-table"><thead><tr><th>Channel</th><th>Apr Spend</th><th>Apr ROAS</th><th>May Budget</th><th>Action</th></tr></thead><tbody>`;
+  s.inv.forEach(r=>{
+    const clsMap={pos:'color:#0f9d58',neg:'color:#db4437',neu:'color:#f4a742'};
+    html+=`<tr><td style="font-weight:700;color:#fff">${r.ch}</td><td>${r.aprSpend}</td><td style="font-weight:600">${r.aprRoas}</td><td style="${clsMap[r.cls]||''};font-weight:700">${r.mayBudget}</td><td style="font-size:0.72rem;color:#aaa">${r.action}</td></tr>`;
+  });
+  const aprTotal=s.inv.reduce((sum,r)=>sum+parseFloat(r.aprSpend.replace(/[$,]/g,'')),0);
+  html+=`<tr style="background:#151528;font-weight:700;border-top:2px solid #ff9800"><td style="color:#fff">Total</td><td>$${aprTotal.toLocaleString()}</td><td>—</td><td style="color:#ff9800">$${s.target.adsBudget.toLocaleString()} budget</td><td style="font-size:0.72rem;color:#888">12% of $${s.target.goal.toLocaleString()} target</td></tr>`;
+  html+=`</tbody></table>`;
+
+  // Key Actions
+  html+=`<div class="section-title">Key Actions for May</div>`;
+  s.actions.forEach(a=>{
+    html+=`<div class="action-card"><div class="priority-dot ${a.priority}"></div><div class="action-text">${a.text}</div></div>`;
+  });
+
+  // Risks
+  if(s.risks&&s.risks.length){
+    html+=`<div class="section-title" style="margin-top:18px">Risk Watchlist</div>`;
+    s.risks.forEach(r=>{
+      html+=`<div class="risk-card ${r.level}">⚠️ ${r.text}</div>`;
+    });
+  }
+
+  // Promo Calendar
+  html+=`<div class="section-title" style="margin-top:18px">May Promo Calendar</div>`;
+  html+=`<div class="promo-tabs"><button class="promo-tab active" onclick="this.parentElement.querySelectorAll('.promo-tab').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('promo-mp').style.display='block';document.getElementById('promo-web').style.display='none'">Marketplace (Shopee/Lazada/TikTok)</button><button class="promo-tab" onclick="this.parentElement.querySelectorAll('.promo-tab').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('promo-mp').style.display='none';document.getElementById('promo-web').style.display='block'">Website</button></div>`;
+
+  // Marketplace promos
+  html+=`<div id="promo-mp">`;
+  PROMO_CALENDAR.marketplace.forEach(pr=>{
+    html+=`<div class="promo-item${pr.mega?' mega':''}"><div class="promo-date">${pr.dates}</div><div class="promo-name">${pr.name}<span class="promo-type">${pr.type}</span></div><div class="promo-mech">${pr.mechanics}</div><div class="promo-platforms">`;
+    if(pr.platforms.shopee) html+=`<span class="promo-plat" style="background:#ee4d2d22;color:#ee4d2d;border:1px solid #ee4d2d44">Shopee: ${pr.platforms.shopee}</span>`;
+    if(pr.platforms.lazada) html+=`<span class="promo-plat" style="background:#0f168922;color:#6672ff;border:1px solid #0f168944">Lazada: ${pr.platforms.lazada}</span>`;
+    if(pr.platforms.tiktok&&pr.platforms.tiktok!=='—') html+=`<span class="promo-plat" style="background:#69c9d022;color:#69c9d0;border:1px solid #69c9d044">TikTok: ${pr.platforms.tiktok}</span>`;
+    html+=`</div></div>`;
+  });
+  html+=`</div>`;
+
+  // Website promos
+  html+=`<div id="promo-web" style="display:none">`;
+  PROMO_CALENDAR.website.forEach(pr=>{
+    html+=`<div class="promo-item${pr.mega?' mega':''}"><div class="promo-date">${pr.dates}</div><div class="promo-name">${pr.name}<span class="promo-type">${pr.type}</span></div><div class="promo-mech">${pr.mechanics}</div></div>`;
+  });
+  html+=`</div>`;
+
+  el.innerHTML=html;
+
+  // Charts
+  charts.push(new Chart(document.getElementById('sc1'),{type:'bar',data:{labels:['April Actual','May Target'],datasets:[{label:'GMV',data:[s.target.aprActual,s.target.goal],backgroundColor:[accent,'#ff9800'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  const chLabels=s.inv.map(r=>r.ch);
+  const aprRoas=s.inv.map(r=>parseFloat(r.aprRoas));
+  charts.push(new Chart(document.getElementById('sc2'),{type:'bar',data:{labels:chLabels,datasets:[{label:'Apr ROAS',data:aprRoas,backgroundColor:accent,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.x.toFixed(2)+'x return per $1'}}},scales:{x:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'x',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+}
+
+/* ── CROSS-PLATFORM COMPARISON ── */
+function renderCross(el){
+  const P=CROSS.platforms;const T=CROSS.totals;
+  let html='';
+
+  // Summary KPIs
+  const gmvChgCls=T.momChg>=0?'pos':'neg';const ordChg=((T.orders-T.prevOrders)/T.prevOrders*100).toFixed(1);const ordCls=ordChg>=0?'pos':'neg';
+  html+=`<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">`;
+  html+=`<div class="kpi ${T.pct>=100?'good':'bad'}"><div class="kpi-label">Total April GMV</div><div class="kpi-val">$${T.actual.toLocaleString()}</div><div class="kpi-chg ${gmvChgCls}">${T.momChg>=0?'▲':'▼'} ${Math.abs(T.momChg)}% MoM</div><div class="kpi-sub">vs $${T.prevGMV.toLocaleString()} (Mar)</div></div>`;
+  html+=`<div class="kpi ${T.pct>=100?'good':'bad'}"><div class="kpi-label">Target Achievement</div><div class="kpi-val">${T.pct}%</div><div class="kpi-chg neg">$${(T.target-T.actual).toLocaleString()} short</div><div class="kpi-sub">of $${T.target.toLocaleString()} target</div></div>`;
+  html+=`<div class="kpi ${ordChg>=0?'good':'bad'}"><div class="kpi-label">Total Orders</div><div class="kpi-val">${T.orders.toLocaleString()}</div><div class="kpi-chg ${ordCls}">${ordChg>=0?'▲':'▼'} ${Math.abs(ordChg)}%</div><div class="kpi-sub">vs ${T.prevOrders.toLocaleString()} (Mar)</div></div>`;
+  html+=`<div class="kpi good"><div class="kpi-label">Blended ROAS</div><div class="kpi-val">${T.roas}x</div><div class="kpi-chg neu">$${T.spending.toLocaleString()} total spend</div><div class="kpi-sub">$${T.budget.toLocaleString()} budgeted</div></div>`;
+  html+=`</div>`;
+
+  // ── SALES COMPARISON ──
+  html+=`<div class="section-title">Sales Comparison — April</div>`;
+  html+=`<table class="summary-table"><thead><tr><th>Platform</th><th style="text-align:right">Target</th><th style="text-align:right">Actual GMV</th><th style="text-align:right">Achievement</th><th style="text-align:right">MoM Change</th><th style="text-align:right">Orders</th><th style="text-align:right">AOV</th></tr></thead><tbody>`;
+  P.forEach(p=>{
+    const pctCls=p.pct>=100?'pos':p.pct>=80?'neu':'neg';
+    const momCls=p.momChg>=0?'pos':'neg';
+    const aovChg=((p.aov-p.prevAov)/p.prevAov*100).toFixed(1);
+    const aovCls=aovChg>=0?'pos':'neg';
+    html+=`<tr><td style="font-weight:700"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>${p.name}</td><td style="text-align:right;color:#888">$${p.target.toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#fff">$${p.actual.toLocaleString()}</td><td style="text-align:right" class="${pctCls}"><strong>${p.pct}%</strong></td><td style="text-align:right" class="${momCls}">${p.momChg>=0?'+':''}${p.momChg}%</td><td style="text-align:right;color:#fff">${p.orders}</td><td style="text-align:right;color:#ccc">$${p.aov.toFixed(2)}</td></tr>`;
+  });
+  html+=`<tr class="totals-row"><td style="font-weight:700;color:#fff">Total</td><td style="text-align:right;color:#888">$${T.target.toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#fff">$${T.actual.toLocaleString()}</td><td style="text-align:right;font-weight:700" class="${T.pct>=100?'pos':'neg'}">${T.pct}%</td><td style="text-align:right" class="${gmvChgCls}">${T.momChg}%</td><td style="text-align:right;color:#fff">${T.orders.toLocaleString()}</td><td style="text-align:right;color:#ccc">—</td></tr>`;
+  html+=`</tbody></table>`;
+
+  // Sales charts
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Target vs Actual GMV</h3><canvas id="cx1"></canvas></div><div class="chart-box"><h3>GMV Share by Platform</h3><canvas id="cx2"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>March vs April GMV</h3><canvas id="cx3"></canvas></div><div class="chart-box"><h3>Target Achievement %</h3><canvas id="cx4"></canvas></div></div>`;
+
+  // ── INVESTMENT COMPARISON ──
+  html+=`<div class="section-title">Investment Comparison — April</div>`;
+  html+=`<table class="summary-table"><thead><tr><th>Platform</th><th style="text-align:right">Budget</th><th style="text-align:right">Actual Spend</th><th style="text-align:right">Budget Usage</th><th style="text-align:right">Revenue</th><th style="text-align:right">Blended ROAS</th><th>Breakdown</th></tr></thead><tbody>`;
+  P.forEach(p=>{
+    const usage=((p.spending/p.budget)*100).toFixed(0);
+    const usageCls=usage<=100?'pos':'neg';
+    html+=`<tr><td style="font-weight:700"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};margin-right:6px;vertical-align:middle"></span>${p.name}</td><td style="text-align:right;color:#888">$${p.budget.toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#fff">$${p.spending.toLocaleString()}</td><td style="text-align:right" class="${usageCls}">${usage}%</td><td style="text-align:right;color:#fff">$${p.actual.toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#0f9d58">${p.roas}x</td><td style="font-size:0.68rem;color:#888">${p.blendedNote}</td></tr>`;
+  });
+  html+=`<tr class="totals-row"><td style="font-weight:700;color:#fff">Total</td><td style="text-align:right;color:#888">$${T.budget.toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#fff">$${T.spending.toLocaleString()}</td><td style="text-align:right" class="${T.spending<=T.budget?'pos':'neg'}">${((T.spending/T.budget)*100).toFixed(0)}%</td><td style="text-align:right;color:#fff">$${T.actual.toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#0f9d58">${T.roas}x</td><td style="font-size:0.68rem;color:#888">All channels combined</td></tr>`;
+  html+=`</tbody></table>`;
+
+  // Investment charts
+  html+=`<div class="chart-row"><div class="chart-box"><h3>ROAS by Platform</h3><canvas id="cx5"></canvas></div><div class="chart-box"><h3>Budget vs Actual Spend</h3><canvas id="cx6"></canvas></div></div>`;
+  html+=`<div class="chart-row"><div class="chart-box"><h3>Revenue per $1 Spent</h3><canvas id="cx7"></canvas></div><div class="chart-box"><h3>Spend Allocation</h3><canvas id="cx8"></canvas></div></div>`;
+
+  // Insights
+  const bestROAS=[...P].sort((a,b)=>b.roas-a.roas)[0];
+  const worstROAS=[...P].sort((a,b)=>a.roas-b.roas)[0];
+  const bestGrowth=[...P].sort((a,b)=>b.momChg-a.momChg)[0];
+  const worstGrowth=[...P].sort((a,b)=>a.momChg-b.momChg)[0];
+  const onlyAbove=P.filter(p=>p.pct>=100);
+  html+=`<div class="insight-box"><h3>Cross-Platform Insights</h3><ul>`;
+  html+=`<li><strong>Only ${onlyAbove.length} of 4 platforms hit target:</strong> ${onlyAbove.length?onlyAbove.map(p=>p.name+' ('+p.pct+'%)').join(', '):'None'} exceeded. Overall achievement: ${T.pct}% ($${(T.target-T.actual).toLocaleString()} shortfall).</li>`;
+  html+=`<li><strong>${bestGrowth.name} is the only growth platform</strong> — GMV ${bestGrowth.momChg>=0?'+':''}${bestGrowth.momChg}% MoM. All other platforms declined double-digits.</li>`;
+  html+=`<li><strong>Best ROAS: ${bestROAS.name} at ${bestROAS.roas}x</strong> — every $1 spent returns $${bestROAS.roas}. Worst: ${worstROAS.name} at ${worstROAS.roas}x.</li>`;
+  html+=`<li><strong>Total ad spend ($${T.spending.toLocaleString()}) exceeded budget ($${T.budget.toLocaleString()})</strong> by $${(T.spending-T.budget).toLocaleString()}. Shopee overspent ($7,800 vs $5,640 budget) while others were under.</li>`;
+  html+=`<li><strong>Shopee carries the portfolio:</strong> 50.1% of total GMV ($61,207 of $122,251) and the only platform exceeding target. Dependency risk if Shopee falters.</li>`;
+  html+=`<li><strong>TikTok needs urgent attention:</strong> Lowest achievement (55.1%) AND lowest ROAS (6.60x). $22,458 below target — the biggest absolute shortfall.</li>`;
+  html+=`</ul></div>`;
+
+  el.innerHTML=html;
+
+  // ── CHARTS ──
+  const pNames=P.map(p=>p.name);const pColors=P.map(p=>p.color);
+
+  // Target vs Actual
+  charts.push(new Chart(document.getElementById('cx1'),{type:'bar',data:{labels:pNames,datasets:[{label:'Target',data:P.map(p=>p.target),backgroundColor:'#2a2a4a',borderRadius:6},{label:'Actual',data:P.map(p=>p.actual),backgroundColor:pColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // GMV Share pie
+  charts.push(new Chart(document.getElementById('cx2'),{type:'doughnut',data:{labels:pNames,datasets:[{data:P.map(p=>p.actual),backgroundColor:pColors,borderColor:'#0f0f1a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>{const t=ctx.dataset.data.reduce((a,b)=>a+b,0);return ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+(ctx.parsed/t*100).toFixed(1)+'%)'}}}}}}));
+
+  // Mar vs Apr
+  charts.push(new Chart(document.getElementById('cx3'),{type:'bar',data:{labels:pNames,datasets:[{label:'March',data:P.map(p=>p.prevGMV),backgroundColor:P.map(p=>p.color+'88'),borderRadius:6},{label:'April',data:P.map(p=>p.actual),backgroundColor:pColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // Achievement %
+  const achColors=P.map(p=>p.pct>=100?'#0f9d58':p.pct>=80?'#f4a742':'#db4437');
+  charts.push(new Chart(document.getElementById('cx4'),{type:'bar',data:{labels:pNames,datasets:[{label:'Achievement %',data:P.map(p=>p.pct),backgroundColor:achColors,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},annotation:{},tooltip:{callbacks:{label:ctx=>ctx.parsed.x+'% of target'}}},scales:{x:{beginAtZero:true,max:120,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'%',color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // ROAS
+  charts.push(new Chart(document.getElementById('cx5'),{type:'bar',data:{labels:pNames,datasets:[{label:'Blended ROAS',data:P.map(p=>p.roas),backgroundColor:pColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y.toFixed(2)+'x ROAS'}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>v+'x',color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // Budget vs Spend
+  charts.push(new Chart(document.getElementById('cx6'),{type:'bar',data:{labels:pNames,datasets:[{label:'Budget',data:P.map(p=>p.budget),backgroundColor:'#2a2a4a',borderRadius:6},{label:'Actual Spend',data:P.map(p=>p.spending),backgroundColor:pColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString()}}},scales:{y:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+(v/1000)+'K',color:'#888'}},x:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // Revenue per $1
+  charts.push(new Chart(document.getElementById('cx7'),{type:'bar',data:{labels:pNames,datasets:[{label:'Revenue per $1',data:P.map(p=>p.roas),backgroundColor:pColors,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.x.toFixed(2)+' revenue per $1 spent'}}},scales:{x:{beginAtZero:true,grid:{color:'#2a2a4a'},ticks:{callback:v=>'$'+v,color:'#888'}},y:{grid:{display:false},ticks:{color:'#aaa'}}}}}));
+
+  // Spend allocation pie
+  charts.push(new Chart(document.getElementById('cx8'),{type:'doughnut',data:{labels:pNames,datasets:[{data:P.map(p=>p.spending),backgroundColor:pColors,borderColor:'#0f0f1a',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},color:'#aaa'}},tooltip:{callbacks:{label:ctx=>{const t=ctx.dataset.data.reduce((a,b)=>a+b,0);return ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+(ctx.parsed/t*100).toFixed(1)+'%)'}}}}}}));
+}
+
+render();
+</script>
+</body>
+</html>
